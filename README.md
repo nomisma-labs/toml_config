@@ -1,8 +1,8 @@
-# cmake_template
+# toml_config
 
 <!-- repo-description:begin -->
-The template every Nomisma C++ repo is created from, and the lab where build-system and C++
-features (modules first) are tried before real repos rely on them.
+Application configuration for Nomisma projects. This repository starts from the shared
+CMake template; configuration APIs and tooling will be developed here.
 <!-- repo-description:end -->
 
 Nomisma libraries define their C++ APIs in named modules from the start.
@@ -66,28 +66,3 @@ app and experiment. Apps can limit their default build/install with `BUILD_FOR d
 
 Agents start at [AGENTS.md](AGENTS.md), people at [docs/](docs/README.md). Adding a library, an
 app, tests or a dependency: [docs/howto.md](docs/howto.md). Releases: [CHANGELOG.md](CHANGELOG.md).
-
-<!-- template-only:begin -->
-## A new repo from the template
-
-On GitHub, "Use this template" (or `gh repo create --template`), then
-`python3 tools/init_project.py <name>`, which removes the example code and the lab. See
-[docs/new_repo.md](docs/new_repo.md).
-
-## What's inside
-
-The CMake project and installed package are named `cmake_template`. The illustrative library
-is named `example` (`nom::example`); its code and tests exercise the build system.
-
-- **Example library `example`** (`core/example/`): the native named module `nom.example`, with
-  interface partitions, a template, compiled implementation units, a config-like type, and a
-  macro header. JSON parsing uses a third-party header behind the module API.
-- **Apps:** `hello` through `import nom.example;`
-  (`build/dev/bin/hello build/dev/config/hello/settings.json`), and lab experiments in `apps/sandbox/`.
-- **Tests:** `tests/unit/` holds Catch2 suites that import the module; `tests/integration/`
-  checks library usage from a separate project and config installation. Use `ctest --preset dev -L unit` or `ctest --preset dev -L integration` to select a group.
-- **Build system:** presets, the CMake kit (`cmake/kit/`), dependencies as submodules in `external/`.
-- **Checks and CI:** SPDX headers, formatting, naming and the release-tag check, on a shared CI
-  image. Validate a newly initialized repo locally with `./bootstrap.sh`.
-- **Lab:** [docs/lab/](docs/lab/README.md).
-<!-- template-only:end -->
