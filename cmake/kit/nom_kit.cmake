@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2026 Alexey Tkachenko
+# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+#
+# Nomisma CMake kit. Template-owned: change it in cmake_template, then pull the change into
+# derived repos with tools/sync_template.py. Reference: docs/build.md.
+
+set(_nom_kit_version 0.3.0)
+
+# The same language flags everywhere: compiled module interfaces are flag-sensitive.
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 23)
+endif()
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT DEFINED CMAKE_CXX_EXTENSIONS)
+    set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
+
+# In a superbuild every repo brings its own copy of the kit. Like FetchContent, the first
+# (outermost) one wins; a different version is reported, since the copies should be in sync.
+get_property(_nom_kit_loaded GLOBAL PROPERTY NOM_KIT_VERSION)
+if(_nom_kit_loaded)
+    if(NOT _nom_kit_loaded VERSION_EQUAL _nom_kit_version)
+        message(WARNING "nom kit ${_nom_kit_version} (${CMAKE_CURRENT_LIST_DIR}) ignored: "
+                        "${_nom_kit_loaded} is already loaded")
+    endif()
+    return()
+endif()
+set_property(GLOBAL PROPERTY NOM_KIT_VERSION ${_nom_kit_version})
+
+include(${CMAKE_CURRENT_LIST_DIR}/nom_project.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/nom_targets.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/nom_dependencies.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/nom_install.cmake)

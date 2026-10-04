@@ -1,0 +1,8 @@
+[submodule "external/nlohmann_json"]
+	path = external/nlohmann_json
+	url = https://github.com/nlohmann/json.git
+	shallow = true
+[submodule "external/metal"]
+	path = external/metal
+	url = https://github.com/brunocodutra/metal.git
+	shallow = true
