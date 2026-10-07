@@ -12,7 +12,17 @@ and generator from the preset rather than bootstrap guessing them from its name.
 Each run deletes only the selected build directories and previous `build/bootstrap/` logs.
 Python compatibility/imports, headers and formatting are always checked; naming is included when
 `clang` is selected. A failed check returns a nonzero exit code. Invalid arguments
-are rejected before cleanup. For everyday incremental work, use the commands below.
+are rejected before cleanup.
+
+Each step reports `PASS`, `FAIL` or `SKIP`, then a summary and next steps; independent checks
+continue after a failure, and only the current run's logs are kept under `build/bootstrap/`. A
+new repo reports its tests as skipped until it has some. Submodules at unexpected commits are
+reported, not reset. Initializing dependencies, or CMake's fallback download, may need network
+access. Builds use one job fewer than the CPU cores, at least one;
+`CMAKE_BUILD_PARALLEL_LEVEL=4 ./bootstrap.sh` overrides that. Bootstrap also works when started
+from another directory.
+
+For everyday incremental work, use the commands below.
 
 ```bash
 git submodule update --init --recursive   # once, after cloning
@@ -37,7 +47,7 @@ to clear both the main build and the nested integration-test builds that cache t
 | Clang tools | 19 (`clang++-19`, `clangd-19`, `clang-tidy-19`, `clang-scan-deps-19`, `clang-format-19`) | second compiler, sanitizers, IDE, checks |
 | CMake | 3.30 or newer; 4.4.3 locally, Ubuntu package 4.2.3 for CI | build |
 | Ninja | 1.11 or newer | generator (Makefiles can't build modules) |
-| Python | 3.10 or newer; 3.14.4 locally | tools and Python integration checks; standard library only |
+| Python | 3.10 or newer; 3.14.4 locally | repository scripts use the standard library; optional wheel builds use the separate environment below |
 | Catch2 | 3 (system package, or a pinned download) | tests |
 
 Only the versioned Clang names exist on Ubuntu (`clang++-19`, not `clang++`), so presets and
@@ -47,20 +57,45 @@ revisions without explicit pins are resolved when the image is built.
 
 ## Python environment
 
-Repository scripts currently need no third-party Python packages or virtual environment.
+Ordinary C++ builds and repository scripts need no third-party Python packages or virtual environment.
 Python 3.10 is the minimum because the scripts use annotations such as `str | None`;
 the current local version is recorded in [Toolchain](#toolchain).
 
-`python3 tools/check_python.py` checks the interpreter version, compiles repository Python
+`python3 tools/kit/checks/python.py` checks the interpreter version, compiles repository Python
 scripts in memory, and checks their imported modules. It discovers tracked and unignored new
 scripts through Git; local helpers are syntax-checked without executing them. Bootstrap runs
 this check before builds and skips Python-dependent steps if it fails. When `clang` is selected,
 it also checks that the clang-tidy runner starts. The runner's optional PyYAML support is not
 needed by our current naming check.
 
+### Native Python wheels
+
+Python packaging is optional and uses a dedicated environment. On Ubuntu, install
+`python3-venv` and `python3-dev` alongside the normal toolchain, then run from the repo root:
+
+```bash
+python3 -m venv build/python-env
+build/python-env/bin/python -m pip install -r tools/kit/python_package_requirements.txt
+CXX=g++-16 build/python-env/bin/python -m build --wheel --no-isolation --outdir build/wheels .
+```
+
+The requirements file pins the packaging tools, including scikit-build-core. The explicit
+environment and `--no-isolation` use those versions without creating another build environment.
+The repository's `pyproject.toml` selects the backend, derives the package version from CMake
+`project()` and enables `<PROJECT>_BUILD_PYTHON`. CMake's `nom_python` install component supplies
+the native package files. Python runtime dependencies remain separate package metadata.
+
+Packaging is tested on Ubuntu 26.04 with GCC 16 and CPython 3.14.4. A wheel is built for that
+environment, with no claim of compatibility across Linux distributions or Python versions.
+Source and imported C++ module libraries must use the same tested compiler and compatible
+runtime. Ordinary bootstrap builds do not install packaging dependencies. Add a package using
+the [Python package recipe](howto.md#a-python-package).
+
 ## Presets
 
-`CMakePresets.json` holds the build settings that developers, CI, IDEs and agents share.
+The presets hold the build settings that developers, CI, IDEs and agents share. The shared ones
+are in `cmake/kit/presets.json`; a repo's `CMakePresets.json` includes that file and can add
+presets of its own under other names.
 
 | Preset | Compiler and build type | Purpose |
 |---|---|---|
@@ -129,14 +164,20 @@ once. In VS Code, use the clangd extension with `"clangd.path": "/usr/bin/clangd
 ## The CMake kit
 
 `cmake/kit/` is shared by every repo and owned by the template (change it in `cmake_template`, then
-run `tools/sync_template.py` in the other repos). The top-level `CMakeLists.txt` includes
-`cmake/kit/nom_kit.cmake`, which sets C++23 without compiler extensions and defines:
+run `tools/kit/sync_template.py` in the other repos). The top-level `CMakeLists.txt` includes
+`cmake/kit/nom_kit.cmake`, which sets C++23 without compiler extensions. This remains the single
+entry point: `api/` contains the helpers used by repositories, `deps/` contains dependency
+services, `internal/` contains implementation helpers, and `templates/` contains generic package
+metadata templates. See the [kit overview](../../cmake/kit/README.md) for short examples.
+
+The entry point provides:
 
 | Function | What it does |
 |---|---|
 | `nom_project_options()` | The project's options (below). Call it right after `project()`. |
 | `nom_lib(<name> [STATIC \| SHARED] [SOURCES …] [HEADERS …] [MODULES …] [BASE_DIR <dir>] [PUBLIC_DEPS …] [PRIVATE_DEPS …])` | Library `<name>` plus alias `nom::<name>`. `MODULES` lists native interfaces and partitions; `SOURCES` lists implementation units and other compiled sources. File sets are rooted at `BASE_DIR` (default `core/`). Header-only macro or dependency adapters can be INTERFACE targets. |
 | `nom_app(<name> SOURCES … [DEPS …] [BUILD_FOR …])` | Executable target `<project>_<name>`, binary `bin/<name>`; selects default build/install participation by preset; collects an adjacent `config/` directory. |
+| `nom_python_module(<target> MODULE_NAME <name> PACKAGE <package> SOURCES … [DEPS …] [RUNTIME_LIBRARIES …])` | Linux Python extension and explicitly bundled shared libraries, installed through the `nom_python` component. |
 | `nom_c2test(<suite> SOURCES … [DEPS …])` | Catch2 executable `<project>_<suite>`, registered with CTest. Needs `nom_find_catch2()`. |
 | `nom_library_usage_tests(<dir> [OPTIONS …])` | Integration tests: build and run a separate project using this library as an installed package and from source (see Tests). |
 | `nom_install_package(TARGETS … [DEPENDENCIES …])` | Install rules and `<project>-config.cmake`, so consumers can `find_package(<project>)` and link `nom::<target>`. |
@@ -154,6 +195,7 @@ line; the CMake files read the variables:
 |---|---|---|---|
 | `<PROJECT>_BUILD_TESTS` | `nom_build_tests` | ON when top level | `tests/` |
 | `<PROJECT>_BUILD_APPS` | `nom_build_apps` | ON when top level | `apps/`, including the sandbox |
+| `<PROJECT>_BUILD_PYTHON` | `nom_build_python` | OFF | optional Python bindings and wheel installation |
 | `<PROJECT>_INSTALL` | `nom_install` | ON | install rules and the package config |
 
 In a superbuild each repo brings its own copy of the kit; the first one loaded wins, and a
@@ -293,7 +335,7 @@ To release `x.y.z`:
 4. Tag that commit on `master` and push the tag:
    ```bash
    git switch master && git pull
-   python3 tools/check_version.py vx.y.z     # the check CI runs on the tag
+   python3 tools/kit/checks/version.py vx.y.z     # the check CI runs on the tag
    git tag -a vx.y.z -m "Release x.y.z"
    git push origin vx.y.z
    ```
@@ -302,13 +344,13 @@ To release `x.y.z`:
 
 | Check | Command |
 |---|---|
-| Python environment | `python3 tools/check_python.py` |
-| SPDX headers | `python3 tools/check_headers.py` |
-| Formatting | `tools/check_format.sh` (`--fix` to reformat) |
-| Naming | `tools/check_naming.sh` (builds `clang` with `NOM_BUILD_PRESET=complete` to cover every app) |
-| Release tag | `python3 tools/check_version.py <tag>` |
+| Python environment | `python3 tools/kit/checks/python.py` |
+| SPDX headers | `python3 tools/kit/checks/headers.py` |
+| Formatting | `tools/kit/checks/format.sh` (`--fix` to reformat) |
+| Naming | `tools/kit/checks/naming.sh` (builds `clang` with `NOM_BUILD_PRESET=complete` to cover every app) |
+| Release tag | `python3 tools/kit/checks/version.py <tag>` |
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the `ci` and `clang` workflows and the first three
+GitHub Actions (`.github/workflows/ci.yml`) runs the `ci` workflow preset and the first four
 checks on pushes to `master`, pull requests, manual runs, and `v*` tags. The version check runs
-only on `v*` tags. Build and quality checks run in the CI
-image `ghcr.io/<owner>/ci`, which cmake_template builds from `docker/ci/Dockerfile`.
+only on `v*` tags. Build and quality checks run in the CI image `ghcr.io/<owner>/ci`, which
+cmake_template builds from `docker/ci/Dockerfile`.

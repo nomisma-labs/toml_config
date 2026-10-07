@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
 """Adds a lab experiment.
 
-    python3 tools/add_sandbox_app.py <name>
+    python3 tools/kit/add_sandbox_app.py <name>
 
 Creates apps/sandbox/<name>/ with a main.cpp and a CMakeLists.txt that builds it as
 bin/sandbox_<name>, linked to the repo's main library if it has one. apps/sandbox/CMakeLists.txt
@@ -16,9 +16,9 @@ import re
 import sys
 from pathlib import Path
 
-from check_headers import HEADER_LINES
+from checks.headers import HEADER_LINES
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def header(marker: str) -> str:
@@ -40,7 +40,7 @@ def main() -> int:
         print(f"error: {experiment.relative_to(ROOT)} already exists", file=sys.stderr)
         return 1
     project = re.search(r"^project\(\s*(\w+)", (ROOT / "CMakeLists.txt").read_text(), re.MULTILINE).group(1)
-    # The main library, when the repo has one, is core/<project> (docs/howto.md#a-library).
+    # The main library, when the repo has one, is core/<project> (docs/kit/howto.md#a-library).
     deps = f" DEPS nom::{project}" if (ROOT / "core" / project).is_dir() else ""
 
     experiment.mkdir()

@@ -41,10 +41,10 @@ jobs:
           submodules: recursive
       # The checkout belongs to another user inside the container; the checks call git.
       - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - run: python3 tools/check_python.py
-      - run: python3 tools/check_headers.py
-      - run: tools/check_format.sh
-      - run: tools/check_naming.sh
+      - run: python3 tools/kit/checks/python.py
+      - run: python3 tools/kit/checks/headers.py
+      - run: tools/kit/checks/format.sh
+      - run: tools/kit/checks/naming.sh
 
   version:
     name: release tag matches project()
@@ -52,4 +52,4 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
-      - run: python3 tools/check_version.py "$GITHUB_REF_NAME"
+      - run: python3 tools/kit/checks/version.py "$GITHUB_REF_NAME"

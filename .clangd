@@ -2,6 +2,6 @@
 # SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
 #
 # clangd reads the clang preset's compilation database: a GCC database carries
-# GCC-only module flags that clang tools can't use (docs/build.md).
+# GCC-only module flags that clang tools can't use (docs/kit/build.md).
 CompileFlags:
   CompilationDatabase: build/clang

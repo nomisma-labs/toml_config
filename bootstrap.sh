@@ -69,7 +69,7 @@ Naming is included when clang is selected.
 Each step reports PASS, FAIL or SKIP; failures return exit code 1.
 Current logs are kept in build/bootstrap/.
 
-Install the tools listed in docs/build.md first. No packages are installed.
+Install the tools listed in docs/kit/build.md first. No packages are installed.
 Build concurrency defaults to available CPU cores minus one, with a minimum of one.
 Set CMAKE_BUILD_PARALLEL_LEVEL to override it.
 CLANG_FORMAT and RUN_CLANG_TIDY overrides are respected by the existing checks.
@@ -170,7 +170,7 @@ have_tools() {
 
 check_python_environment() {
     local preset
-    python3 tools/check_python.py || return
+    python3 tools/kit/checks/python.py || return
     for preset in "${presets[@]}"; do
         if [[ $preset == clang ]]; then
             # This runner may use a different interpreter through its shebang.
@@ -204,7 +204,7 @@ run_tests() {
         return
     fi
     if [[ $count == 0 ]]; then
-        record SKIP "$preset: tests" 'no tests registered; add tests using docs/howto.md'
+        record SKIP "$preset: tests" 'no tests registered; add tests using docs/kit/howto.md'
     else
         run_step "$preset: tests ($count registered, unit and integration tests where present)" \
             ctest --preset "$preset" --output-on-failure --no-tests=error
@@ -284,18 +284,18 @@ for preset in "${presets[@]}"; do
 done
 
 if [[ $python_ready == true ]]; then
-    run_step 'SPDX headers' python3 tools/check_headers.py
+    run_step 'SPDX headers' python3 tools/kit/checks/headers.py
 else
     record SKIP 'SPDX headers' 'Python environment check did not pass'
 fi
 if have_tools git "${CLANG_FORMAT:-clang-format-19}"; then
-    run_step 'Formatting' bash tools/check_format.sh
+    run_step 'Formatting' bash tools/kit/checks/format.sh
 else
     record SKIP 'Formatting' 'required tools failed'
 fi
 if [[ $clang_selected == true ]]; then
     if [[ $clang_ready == true ]] && have_tools clang-tidy-19 "${RUN_CLANG_TIDY:-run-clang-tidy-19}"; then
-        run_step 'Naming' bash tools/check_naming.sh
+        run_step 'Naming' bash tools/kit/checks/naming.sh
     else
         record SKIP 'Naming' 'requires a successful Clang build and clang-tidy tools'
     fi
@@ -306,8 +306,8 @@ printf '%s\n' "${results[@]}"
 printf '\n%s passed, %s failed, %s skipped.\nLogs: %s\n' "$passed" "$failed" "$skipped" "$log_dir"
 if (( failed > 0 )); then
     printf '\nValidation failed. Fix the failures above, then rerun ./bootstrap.sh%s.\n' "${1:+ $1}"
-    printf 'Toolchain and build instructions: docs/build.md\n'
-    printf 'Formatting fixes: tools/check_format.sh --fix\n'
+    printf 'Toolchain and build instructions: docs/kit/build.md\n'
+    printf 'Formatting fixes: tools/kit/checks/format.sh --fix\n'
     exit 1
 fi
 
@@ -316,9 +316,6 @@ if (( skipped > 0 )); then
     printf 'Review the skipped checks above.\n'
 fi
 printf '\nNext steps:\n'
-if [[ -f tools/init_project.py ]]; then
-    printf '  Create a repository from this template: docs/new_repo.md\n'
-fi
-printf '  Add a library, app or tests: docs/howto.md\n'
+printf '  Add a library, app or tests: docs/kit/howto.md\n'
 printf '  Build and tests: cmake --workflow --preset %s\n' "$next_preset"
 printf '  Executables: build/%s/bin/\n' "$next_preset"

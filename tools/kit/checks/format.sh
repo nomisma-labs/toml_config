@@ -4,7 +4,7 @@
 #
 # Checks C++ formatting against .clang-format. With --fix, reformats the files instead.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../../.."
 
 clang_format=${CLANG_FORMAT:-clang-format-19}
 # Skip paths git still lists but that are gone from the working tree (deleted or renamed, not yet staged).

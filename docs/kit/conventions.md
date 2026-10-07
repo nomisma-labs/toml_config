@@ -1,7 +1,7 @@
 # Conventions
 
 These conventions apply to every Nomisma repo from its first commit. This file is the canonical
-text; every repo's `AGENTS.md` links here.
+text; every repo's agent rules ([agents.md](agents.md)) link here.
 
 ## C++ identifiers
 
@@ -84,9 +84,9 @@ Target names are global in a superbuild, so every target carries its project's n
 
 | What | Tool | Fix |
 |---|---|---|
-| Formatting | `.clang-format`; `tools/check_format.sh` | `tools/check_format.sh --fix` |
-| Naming | `.clang-tidy` (readability-identifier-naming); `tools/check_naming.sh` | rename by hand |
-| License header | `python3 tools/check_headers.py` | add the header below |
+| Formatting | `.clang-format`; `tools/kit/checks/format.sh` | `tools/kit/checks/format.sh --fix` |
+| Naming | `.clang-tidy` (readability-identifier-naming); `tools/kit/checks/naming.sh` | rename by hand |
+| License header | `python3 tools/kit/checks/headers.py` | add the header below |
 
 Every source file (C++, CMake, Python, shell, YAML, Dockerfile) starts with, after an optional shebang:
 

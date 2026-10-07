@@ -5,7 +5,7 @@
 # Checks naming (.clang-tidy) over the clang preset's compilation database. It builds first:
 # clang-tidy needs the compiled module interfaces to parse code that imports them.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../../.."
 
 # Include excluded apps too: clang-tidy needs their module interfaces built.
 cmake --preset clang -DNOM_BUILD_PRESET=complete > /dev/null

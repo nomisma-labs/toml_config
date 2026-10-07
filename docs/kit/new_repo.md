@@ -41,10 +41,14 @@ git push
 `tools/init_project.py <name>` turns the copy into an empty repo. It removes the template's example
 code instead of renaming it:
 
-- deletes the example code (`core/example/`, `apps/hello/`, the example unit tests and the library usage
-  test project, the nlohmann submodule), the lab (the sandbox experiments, `docs/lab/`) and the
-  template-only files (`docker/`, the `ci-image` workflow, and itself);
+- deletes the example code (`core/example/`, `apps/hello/`, the example unit tests, library usage
+  and Python package test projects, root `pyproject.toml`, `python/`, the nlohmann submodule),
+  the lab (the sandbox experiments, `docs/lab/`) and the
+  template-only files (`docker/`, the `ci-image` and `ci-template` workflows, the template sync
+  test, and itself);
 - retains the Metal v2.1.4 submodule and `nom_find_metal()` call as the shared dependency baseline;
+- retains optional Python packaging helpers and pinned build-tool requirements; generated repos
+  start without a Python package and add one using [howto.md](howto.md#a-python-package);
 - deletes the lines and blocks the template marks as template-only;
 - sets the name and version `0.1.0` in `project()`; the options and the package name derive from it;
 - puts the name and a TODO description into `README.md` and `AGENTS.md`, and starts an empty
@@ -78,22 +82,34 @@ Keep macro headers and third-party dependency headers where needed.
 
 ## Keeping repos in sync
 
-Template-owned paths are `bootstrap.sh`, `cmake/kit/`, `tools/`, the shared docs (`docs/build.md`,
-`docs/conventions.md`, `docs/howto.md`, this file), `.clang-format`, `.clang-tidy`, `.clangd`,
-`.editorconfig` and `.github/workflows/ci.yml`. Change them only in `cmake_template`. To bring a
-repo up to date:
+Template-owned paths are the kits (`cmake/kit/`, `tools/kit/`, `docs/kit/`), `bootstrap.sh`,
+`.clang-format`, `.clang-tidy`, `.clangd`, `.editorconfig` and `.github/workflows/ci.yml`.
+Change them only in `cmake_template`; a repo keeps its own CMake files, tools and docs in
+`cmake/`, `tools/` and `docs/`, outside the kits. To bring a repo up to date:
 
 ```bash
-python3 tools/sync_template.py        # or --to <template release tag>, such as --to v0.2.0
-git diff --cached                     # review staged template changes
-git diff -- .template_ref             # review the new upstream revision
-git add .template_ref                 # the script leaves this file unstaged
-git commit -m "Sync with cmake_template"
+python3 tools/kit/sync_template.py      # to the newest release, or --to <release tag>
+git diff --cached                       # review the staged changes
+./bootstrap.sh
+git commit -m "Sync cmake_template vX.Y.Z"
 ```
 
-The script diffs the template-owned paths between the template commit in `.template_ref` and the
-template's newest commit (or the given tag), applies the difference with `git apply --3way`, and
-updates `.template_ref`.
+The script syncs from the template commit recorded in `.template_ref`:
+
+- Each template-owned file that is unchanged since that commit is replaced, added or deleted to
+  match the target release. Nothing is merged, and no other file of the repo changes.
+- If a template-owned file was edited or deleted in the repo, nothing changes at all. The script
+  lists those files: move the change into `cmake_template`, or into a file the repo owns, and
+  rerun; or rerun with `--overwrite` to take the template's version. The work tree must be
+  clean, so replaced content stays in git history.
+- It stages the result together with `.template_ref`. It then lists the repo's own files that
+  still mention moved or removed template paths, the repo's files inside the kit's folders, and
+  the `### Upgrade` steps from the template's `CHANGELOG.md` for the releases in between: the
+  changes a repo makes by hand.
+
+The target release's copy of the script does the work, so the file list and the rules come from
+the release being synced to. The script syncs the repo of the current directory, so any copy of
+it can run a sync, for example `python3 ../cmake_template/tools/kit/sync_template.py`.
 
 The sync transfers shared build rules and guidance, not repository-owned code. A change to the
 composition policy therefore has two parts: sync the template-owned paths, then migrate the
@@ -111,3 +127,8 @@ Dependency migrations also update repository-owned files: sync supplies `nom_fin
 but existing repos add or retain the Metal submodule in `.gitmodules`, call the helper from their
 top-level `CMakeLists.txt`, and use `nom::metal` in place of local adapters. Public dependency
 declarations in installed packages use `nom_metal`.
+
+Python packaging follows the same boundary: synchronize the kit, tools and shared guidance,
+then add repository-owned `pyproject.toml`, binding sources and target declarations. Keep the
+backend, environment and runtime-library installation mechanisms in the template; repositories
+declare their package names, dependencies and contents through those facilities.

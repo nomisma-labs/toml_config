@@ -3,18 +3,18 @@
 # SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
 """Prints the repo's version, or checks a release tag against it.
 
-    python3 tools/check_version.py            # prints the version in project()
-    python3 tools/check_version.py v1.2.0     # fails unless the tag is v<version>
+    python3 tools/kit/checks/version.py            # prints the version in project()
+    python3 tools/kit/checks/version.py v1.2.0     # fails unless the tag is v<version>
 
 The version lives only in the project() call of the top-level CMakeLists.txt, and releases are
-tagged v<version> (docs/build.md#versioning). CI runs the check on every tag push.
+tagged v<version> (docs/kit/build.md#versioning). CI runs the check on every tag push.
 """
 
 import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 
 
 def project_version() -> str:

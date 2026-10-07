@@ -186,6 +186,86 @@ that other repos rely on.
    helper labels its tests `integration`. Keep other integration checks here too, with the same
    label. Run either group with `ctest --preset dev -L unit` or `ctest --preset dev -L integration`.
 
+## A Python package
+
+The shared kit supports optional native Linux wheels. The template's `python/` and
+`pyproject.toml` are the worked example; initialization removes them while retaining the kit
+and packaging tools. Packaging does not choose or generate the Python API.
+
+1. Put binding sources in `python/` and Python files in `python/<package>/`. The binding must
+   export the extension name selected below (`_native`); `__init__.py` can expose its public API.
+2. After the root's `add_subdirectory(core)`, enable that directory only on request:
+   ```cmake
+   if(nom_build_python)
+       add_subdirectory(python)
+   endif()
+   ```
+3. Add `python/CMakeLists.txt`, using a shared library target in this example:
+   ```cmake
+   nom_python_module(<repo>_python
+       MODULE_NAME _native
+       PACKAGE <package>
+       SOURCES native.cpp
+       DEPS nom::<repo>
+       RUNTIME_LIBRARIES nom::<repo>)
+   ```
+   `DEPS` uses existing source-built or imported CMake targets. List all required shared targets
+   in `RUNTIME_LIBRARIES`, including transitive dependencies; the helper installs them beside
+   the extension with package-relative loading paths. Omit that argument for dependencies that
+   are all static. Source-built static/object targets become position-independent; imported
+   static libraries must already contain PIC objects and declare
+   `INTERFACE_POSITION_INDEPENDENT_CODE=ON`.
+
+   Imported shared libraries must have a filename-only ELF SONAME and no runtime path or a
+   runtime path of exactly `$ORIGIN`; the helper checks them with `readelf`. It copies these
+   binaries without repairing them. Declare the complete target dependency graph; conditional
+   link expressions other than the supported `LINK_ONLY`/`BUILD_INTERFACE` wrappers are rejected.
+   System-library and portable-wheel repair policies are outside this initial helper.
+4. Add `pyproject.toml`. Replace `<repo>`, its upper-case `<PROJECT>`, `<distribution>` and
+   `<package>`; keep the backend pin aligned with `tools/kit/python_package_requirements.txt`:
+   ```toml
+   [build-system]
+   requires = ["scikit-build-core==0.11.6"]
+   build-backend = "scikit_build_core.build"
+
+   [project]
+   name = "<distribution>"
+   dynamic = ["version"]
+   requires-python = ">=3.10"
+   license = "LicenseRef-Nomisma-Labs-Proprietary"
+   license-files = ["LICENSE"]
+
+   [tool.scikit-build]
+   minimum-version = "build-system.requires"
+   cmake.version = ">=3.30"
+   ninja.version = ">=1.11"
+   cmake.build-type = "Release"
+   wheel.packages = ["python/<package>"]
+   install.components = ["nom_python"]
+
+   [tool.scikit-build.cmake.define]
+   <PROJECT>_BUILD_PYTHON = "ON"
+   <PROJECT>_BUILD_APPS = "OFF"
+   <PROJECT>_BUILD_TESTS = "OFF"
+   <PROJECT>_INSTALL = "OFF"
+
+   [tool.scikit-build.metadata.version]
+   provider = "scikit_build_core.metadata.regex"
+   input = "CMakeLists.txt"
+   regex = '(?s)project\s*\(\s*<repo>\s+VERSION\s+(?P<value>[0-9]+\.[0-9]+\.[0-9]+)'
+   ```
+   Use the repository's license and selected Python minimum. The latter is a source requirement;
+   native wheel tags still select the interpreter and platform actually built. The `nom_python`
+   component is separate from the C++ SDK install and excluded from ordinary full installs.
+5. Initialize submodules, create the [packaging environment](build.md#native-python-wheels)
+   and build a wheel from the complete checkout. Add an integration test that installs the
+   artifact into a clean environment and calls the underlying C++ API after making build-tree
+   and original installed libraries unavailable. Test any bundled dependency chain as well.
+
+Use the same tested compiler for the binding and C++ module libraries, whether built together
+or imported. Normal C++ builds leave `<PROJECT>_BUILD_PYTHON=OFF` and do not need the packaging
+environment. Change shared mechanisms in the template, then synchronize them into derived repos.
+
 ## A dependency
 
 - **Metal:** already provided by the template's `nom_find_metal()` call. Use `nom::metal` in
@@ -228,7 +308,7 @@ that other repos rely on.
 
 ## An experiment
 
-`python3 tools/add_sandbox_app.py <name>` creates `apps/sandbox/<name>/`, built as
+`python3 tools/kit/add_sandbox_app.py <name>` creates `apps/sandbox/<name>/`, built as
 `bin/sandbox_<name>` and linked to the main library if the repo has one. It uses `BUILD_FOR complete`:
 run `cmake --workflow --preset complete`, or build its target explicitly in another preset. If an
 experiment has its own support libraries, mark them `EXCLUDE_FROM_ALL TRUE` so they build only

@@ -57,7 +57,7 @@ can set
   CMake integration, and deployment.
 - [tcfg 1 specification](docs/tcfg.md): language contract and portability rules.
 - [Parser choice](docs/parser_choice.md): toml11 evaluation and module boundary.
-- [Build reference](docs/build.md): GCC/Clang toolchains, presets, and shared kit.
+- [Build reference](docs/kit/build.md): GCC/Clang toolchains, presets, and shared kit.
 
 Install after building with `cmake --install build/dev --prefix <prefix>`.
 Consumers use `find_package(toml_config CONFIG REQUIRED)` and link
@@ -79,5 +79,5 @@ and license, and optional Python/CMake tooling are installed with the package.
 
 Run `./bootstrap.sh` for the repository's full validation workflow, or select a
 preset with `./bootstrap.sh ci`. See [AGENTS.md](AGENTS.md) and
-[the conventions](docs/conventions.md) before contributing. The language
+[the conventions](docs/kit/conventions.md) before contributing. The language
 specification and fixtures can also guide future implementations in other languages.

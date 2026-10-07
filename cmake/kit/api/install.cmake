@@ -37,7 +37,7 @@ function(nom_install_package)
     foreach(dependency IN LISTS arg_DEPENDENCIES)
         string(APPEND NOM_PACKAGE_DEPENDENCIES "find_dependency(${dependency})\n")
     endforeach()
-    configure_package_config_file(${CMAKE_CURRENT_FUNCTION_LIST_DIR}/package_config.cmake.in
+    configure_package_config_file(${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../templates/package_config.cmake.in
         ${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
         INSTALL_DESTINATION ${config_dir})
     # SemVer: while MAJOR is 0 any release may break the API, so only the same MINOR is compatible.

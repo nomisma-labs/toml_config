@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
 # SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
 
-# Tests are grouped by what they verify (docs/howto.md).
+# Tests are grouped by what they verify (docs/kit/howto.md).
 find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
 add_subdirectory(unit)
 add_subdirectory(integration)

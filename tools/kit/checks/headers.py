@@ -12,7 +12,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-# The header, without its comment marker. Also used by tools/add_sandbox_app.py.
+# The header, without its comment marker. Also used by tools/kit/add_sandbox_app.py.
 HEADER_LINES = [
     "SPDX-FileCopyrightText: 2026 Alexey Tkachenko",
     "SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary",
@@ -38,7 +38,7 @@ def has_header(path: Path, marker: str) -> bool:
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parent.parent
+    root = Path(__file__).resolve().parents[3]
     listed = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"],
                             cwd=root, capture_output=True, text=True, check=True).stdout.splitlines()
     missing = []
