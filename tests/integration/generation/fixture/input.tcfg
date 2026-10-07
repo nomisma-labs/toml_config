@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Alexey Tkachenko
+# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+
+[tcfg]
+version = 1
+extends = ["base config.tcfg"]
+
+[application]
+name = "source"

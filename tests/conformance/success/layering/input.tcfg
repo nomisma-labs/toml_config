@@ -1,0 +1,7 @@
+[tcfg]
+version = 1
+extends = ["base.toml", "second.toml"]
+[service]
+host = "example.invalid"
+[switch]
+enabled = true

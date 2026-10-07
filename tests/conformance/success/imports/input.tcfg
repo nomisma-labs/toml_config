@@ -1,0 +1,19 @@
+[tcfg]
+version = 1
+[[tcfg.import]]
+file = "data/wrapped.tcfg"
+select = ["items"]
+into = ["feed", "symbols"]
+[[tcfg.import]]
+file = "data/wrapped.tcfg"
+select = ["limits"]
+into = ["limits"]
+[[tcfg.import]]
+file = "data/symbols.toml"
+select = ["literal.dotted.key", "value"]
+into = ["text"]
+[[tcfg.import]]
+file = "data/symbols.toml"
+into = ["copy"]
+[limits]
+rate = 200

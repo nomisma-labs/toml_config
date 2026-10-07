@@ -1,0 +1,10 @@
+[log]
+level = "info"
+
+[feed]
+endpoint = "wss://feed.example.invalid/market"
+symbols = ["EXAMPLE-USD"]
+timeout_ms = 5000
+
+[storage]
+directory = "data"

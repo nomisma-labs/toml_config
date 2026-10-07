@@ -1,0 +1,6 @@
+[tcfg]
+version = 1
+[[tcfg.env]]
+name = "TCFG_CONFORMANCE_UNSET_VARIABLE_1739204"
+into = ["tcfg", "key"]
+default = "bad"

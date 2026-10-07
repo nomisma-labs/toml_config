@@ -1,0 +1,22 @@
+lowercase_utc = 2026-10-04t12:34:56.123456z
+nested_dates = [{ when = 2026-10-04T12:34:56.987654Z }]
+text = "escaped \" and \n newline"
+unicode = "日本語 π"
+integer = -9223372036854775808
+maximum = 9223372036854775807
+floating = 3.25
+negative_zero = -0.0
+positive_infinity = inf
+negative_infinity = -inf
+not_a_number = nan
+boolean = false
+date = 2026-10-04
+time = 12:34:56.123456
+local = 2026-10-04T12:34:56.987654
+offset = 2026-10-04T12:34:56.123456+08:00
+mixed = [1, "two", true, { key = 4 }]
+empty = []
+records = [{ name = "first", enabled = true }, { name = "second", nested = { n = 5 } }]
+[empty_table]
+["quoted.dots"]
+"strange key" = "value"

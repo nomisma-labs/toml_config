@@ -1,0 +1,5 @@
+items = ["BTC", "ETH"]
+[limits]
+rate = 100
+["literal.dotted.key"]
+value = "selected"

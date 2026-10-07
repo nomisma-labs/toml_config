@@ -2,8 +2,10 @@
 
 <!-- repo-description:begin -->
 This is **toml_config**, the application configuration component for Nomisma projects.
-It is an empty scaffold initialized from `cmake_template`, with Metal v2.1.4 as the shared
-foundation dependency. Configuration APIs, tooling and tests are still to be added.
+It provides Python tcfg generation, C++ TOML discovery and typed application initialization,
+and optional generation for CMake. See `docs/tcfg.md` for the language contract
+and `docs/guide.md` for usage. Metal v2.1.4 remains a foundation dependency; toml11 v4.4.0
+provides TOML parsing and macro bindings through a compiled dependency adapter.
 <!-- repo-description:end -->
 
 ## Build and test

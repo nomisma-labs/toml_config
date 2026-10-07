@@ -1,0 +1,8 @@
+name = "base"
+numbers = [1, 2]
+switch = 4
+[service]
+port = 9000
+host = "localhost"
+[service.labels]
+base = "yes"

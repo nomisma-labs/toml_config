@@ -1,0 +1,10 @@
+name = "base"
+numbers = [3]
+[switch]
+enabled = true
+[service]
+port = 9100
+host = "example.invalid"
+[service.labels]
+base = "yes"
+second = "yes"

@@ -1,68 +1,83 @@
 # toml_config
 
 <!-- repo-description:begin -->
-Application configuration for Nomisma projects. This repository starts from the shared
-CMake template; configuration APIs and tooling will be developed here.
+Application configuration built on TOML. **tcfg** (“tee-config”) composes `.tcfg`
+files into ordinary TOML using the Python generator. C++ applications locate,
+parse, and bind the resulting TOML to their settings structures.
 <!-- repo-description:end -->
 
-Nomisma libraries define their C++ APIs in named modules from the start.
-Headers remain for macros and third-party libraries that need them;
-[the module rules](docs/build.md#modules) describe those boundaries.
+```toml
+[tcfg]
+version = 1
+extends = ["defaults.toml"]
 
-Metal v2.1.4 is part of the shared foundation. `nom_find_metal()` exposes its headers through
-`nom::metal`; generated repositories retain the pinned submodule. Installed consumers use the
-`nom_metal` package, which includes those headers and their license.
+[[tcfg.import]]
+file = "symbols.toml"
+select = ["symbols"]
+into = ["feed", "symbols"]
 
-## Bootstrap
-
-After installing the tools listed in [docs/build.md](docs/build.md#toolchain), run:
-
-```bash
-./bootstrap.sh           # standard validation presets
-./bootstrap.sh release   # one preset only
-./bootstrap.sh --help    # usage and available presets
+[feed]
+timeout_ms = 2000
 ```
 
-Bootstrap discovers enabled presets through CMake, including included files and
-`CMakeUserPresets.json`. It uses matching configure/build/test names and the repo's
-`build/<preset>/` layout. With no argument, it validates every discovered preset except
-`release`; pass a name to select one preset explicitly. Adding a paired preset to CMake
-automatically makes it available here. Each run clears selected build directories and previous
-bootstrap logs, initializes missing submodules, and configures/builds/tests from scratch.
-Unselected build directories are preserved.
+Layers merge tables recursively; arrays and scalar values replace. Explicit
+directives support fragment imports, subtree replacement/deletion, and environment
+bindings. Required missing inputs, invalid directives, and reference cycles fail
+with diagnostics. Each deployment variant has its own entry file.
 
-Python compatibility/imports, SPDX headers and formatting run every time. The Python check
-verifies version 3.10 or newer, script syntax, and imported modules; no pip packages are
-currently required. Naming is included when `clang` is selected. Tests include unit suites and
-integration checks for library usage from source and through an installed package. Every step reports `PASS`, `FAIL`
-or `SKIP`, followed by a summary and next steps. Failures return a nonzero exit code;
-independent checks continue where possible. Only the current run's logs are kept under
-`build/bootstrap/`. Use the commands in **Build** below for incremental work.
+The C++23 library exposes `import nom.toml_config;`, configuration discovery,
+and typed initialization. It uses toml11 v4.4.0's non-intrusive mapping
+macros. The Python generator requires Python 3.11+ and has no runtime package
+dependencies. CMake generation is optional and tracks transitive input files.
 
-An empty generated repository reports its tests as skipped until you add them. Submodules at
-unexpected commits are reported for you to resolve; bootstrap does not reset them. Dependency
-initialization or CMake's dependency fallback may need network access. Build concurrency defaults
-to the available CPU core count minus one, with a minimum of one job. Use
-`CMAKE_BUILD_PARALLEL_LEVEL=4 ./bootstrap.sh` to override it. The script also works when invoked
-from another directory.
-
-## Manual build
+## Try it
 
 ```bash
-git submodule update --init --recursive   # once, after cloning
-cmake --preset dev                        # once: configure into build/dev
-cd build/dev
-ninja                                     # build; reruns cmake itself when a CMakeLists.txt changes
-ctest --output-on-failure                 # test
+git submodule update --init --recursive
+cmake --preset dev
+cmake --build --preset dev -j 4
+ctest --preset dev
+
+build/dev/bin/capture_example --check-config
+
+python3 cfggen.py apps/capture_example/config/debug.tcfg -o build/capture.toml
+build/dev/bin/capture_example --config build/capture.toml --check-config
 ```
 
-Other presets (`complete`, `clang`, `asan`, `release`, `ci`) work the same way in `build/<preset>`, and
-`cmake --workflow --preset dev` configures, builds and tests in one command. Apps land in
-`build/<preset>/bin/`. Use `cmake --workflow --preset complete` for a Debug build including every
-app and experiment. Apps can limit their default build/install with `BUILD_FOR dev ci`; omitting
-`BUILD_FOR` includes them everywhere. More: [docs/build.md](docs/build.md).
+The example demonstrates nested mappings and initialization without making
+network connections. By default, CMake generates its TOML from the sample tcfg
+entry. With `-DTOML_CONFIG_GENERATE_EXAMPLE=OFF`, the sample uses the ordinary
+`capture_example.toml` collected from its `config/` directory. Library-only builds
+can set
+`-DTOML_CONFIG_BUILD_APPS=OFF -DTOML_CONFIG_BUILD_TESTS=OFF` and require no Python.
 
-## Docs
+## Learn and integrate
 
-Agents start at [AGENTS.md](AGENTS.md), people at [docs/](docs/README.md). Adding a library, an
-app, tests or a dependency: [docs/howto.md](docs/howto.md). Releases: [CHANGELOG.md](CHANGELOG.md).
+- [Author and application guide](docs/guide.md): workflows, bindings, discovery,
+  CMake integration, and deployment.
+- [tcfg 1 specification](docs/tcfg.md): language contract and portability rules.
+- [Parser choice](docs/parser_choice.md): toml11 evaluation and module boundary.
+- [Build reference](docs/build.md): GCC/Clang toolchains, presets, and shared kit.
+
+Install after building with `cmake --install build/dev --prefix <prefix>`.
+Consumers use `find_package(toml_config CONFIG REQUIRED)` and link
+`nom::toml_config`. Module interfaces, the compiled TOML dependency, its headers
+and license, and optional Python/CMake tooling are installed with the package.
+
+## Repository layout
+
+| Path | Purpose |
+|---|---|
+| `core/toml_config/` | C++ TOML loading, discovery, and public module |
+| `core/toml_config/util/` | Private OS utility and platform implementation |
+| `cfggen.py` | Standalone Python generator launcher |
+| `python/toml_config/` | Python interpreter, serializer, and CLI |
+| `cmake/tcfg.cmake` | Optional configuration generation helper |
+| `apps/capture_example/` | Typed initialization example and configurations |
+| `tests/conformance/` | Python generator's accepted/rejected language cases |
+| `tests/unit/`, `tests/python/`, `tests/integration/` | Behavior and integration tests |
+
+Run `./bootstrap.sh` for the repository's full validation workflow, or select a
+preset with `./bootstrap.sh ci`. See [AGENTS.md](AGENTS.md) and
+[the conventions](docs/conventions.md) before contributing. The language
+specification and fixtures can also guide future implementations in other languages.

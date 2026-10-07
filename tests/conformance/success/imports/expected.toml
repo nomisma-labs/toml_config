@@ -1,0 +1,12 @@
+text = "selected"
+[feed]
+symbols = ["BTC", "ETH"]
+[limits]
+rate = 200
+burst = 20
+[copy]
+items = ["BTC", "ETH"]
+[copy.limits]
+rate = 100
+[copy."literal.dotted.key"]
+value = "selected"

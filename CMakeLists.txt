@@ -15,6 +15,12 @@ nom_project_options()
 # Dependencies come from external/ submodules (docs/howto.md#a-dependency). In a superbuild the
 # outermost FetchContent_Declare wins, so every repo shares one copy.
 nom_find_metal()
+include(cmake/toml_dependency.cmake)
+toml_config_find_toml11()
+include(cmake/tcfg.cmake)
+if(nom_install)
+    toml_config_install_tooling()
+endif()
 
 # Discover Catch2 before any code directory can register an inline test suite.
 if(nom_build_tests)

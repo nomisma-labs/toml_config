@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Alexey Tkachenko
+# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/toml11-targets.cmake")
+check_required_components(toml11)

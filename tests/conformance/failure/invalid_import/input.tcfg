@@ -1,0 +1,5 @@
+[tcfg]
+version = 1
+[[tcfg.import]]
+file = "data.toml"
+into = []

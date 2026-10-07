@@ -4,3 +4,4 @@
 # One subdirectory per app (docs/howto.md#an-app). The sandbox holds experiments.
 
 add_subdirectory(sandbox)
+add_subdirectory(capture_example)

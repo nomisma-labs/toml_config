@@ -1,0 +1,6 @@
+remove = true
+[service]
+keep = true
+[service.labels]
+old = "discard"
+obsolete = true

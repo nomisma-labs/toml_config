@@ -1,0 +1,15 @@
+[tcfg]
+version = 1
+extends = ["capture_example.tcfg"]
+
+[[tcfg.env]]
+name = "CAPTURE_API_KEY"
+into = ["feed", "api_key"]
+default = ""
+
+[log]
+level = "debug"
+
+[feed]
+symbols = ["BTC-USD"]
+reconnect_delay_ms = 250

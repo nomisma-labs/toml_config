@@ -2,3 +2,4 @@
 # SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
 #
 # One subdirectory per library (docs/howto.md#a-library).
+add_subdirectory(toml_config)

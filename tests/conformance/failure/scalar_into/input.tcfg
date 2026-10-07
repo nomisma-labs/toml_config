@@ -1,0 +1,6 @@
+[tcfg]
+version = 1
+extends = ["data.toml"]
+[[tcfg.import]]
+file = "data.toml"
+into = ["a", "child"]

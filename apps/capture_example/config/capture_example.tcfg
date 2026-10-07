@@ -1,0 +1,11 @@
+[tcfg]
+version = 1
+extends = ["defaults.toml"]
+
+[[tcfg.import]]
+file = "symbols.toml"
+select = ["symbols"]
+into = ["feed", "symbols"]
+
+[feed]
+timeout_ms = 2000

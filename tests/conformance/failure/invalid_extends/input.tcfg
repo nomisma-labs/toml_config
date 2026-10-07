@@ -1,0 +1,3 @@
+[tcfg]
+version = 1
+extends = "other.toml"

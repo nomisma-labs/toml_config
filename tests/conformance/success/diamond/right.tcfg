@@ -1,0 +1,4 @@
+b = 3
+[tcfg]
+version = 1
+extends = ["base.toml"]

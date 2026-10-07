@@ -1,0 +1,6 @@
+[tcfg]
+version = 1
+extends = ["base.toml"]
+replace = [["", ""]]
+[""]
+"" = "new"

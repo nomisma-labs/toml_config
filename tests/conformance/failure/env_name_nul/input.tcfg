@@ -1,0 +1,6 @@
+[tcfg]
+version = 1
+[[tcfg.env]]
+name = "NAME\u0000OTHER"
+into = ["token"]
+default = "bad"

@@ -1,0 +1,5 @@
+[tcfg]
+version = 1
+extends = ["symbols.toml"]
+[limits]
+burst = 20
