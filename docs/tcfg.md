@@ -1,5 +1,8 @@
 # tcfg 1 language specification
 
+**Status: under review.** We are developing the language through
+[educational examples](tcfg/examples/README.md) before revising this reference.
+
 **tcfg** (pronounced “tee-config”) composes application configuration using TOML.
 A `.tcfg` document is TOML 1.0 with a reserved root `tcfg` table describing
 composition. All other root keys are application data. One entry file represents
@@ -16,6 +19,9 @@ extends = ["common.toml", "service.tcfg"]
 [log]
 level = "warning"
 ```
+
+`tcfg.version` identifies the **tcfg language version**, independently of the TOML
+format version. The current draft uses tcfg version 1 with TOML 1.0 syntax.
 
 Generator `.toml` inputs contain application data only; a root `tcfg` key is an error.
 `.tcfg` inputs must have `[tcfg]` and integer `version = 1`. Other extensions,
