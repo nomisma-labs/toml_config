@@ -1,9 +1,5 @@
 # Introduction to toml_config
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
 **toml_config** is Nomisma's TOML configuration framework for C++ applications.
 It loads settings into typed C++ structures, validates them before application
 startup, and generates configuration variants from structured configs.
@@ -61,9 +57,8 @@ flowchart LR
 
 ### 1. Define the config file
 
-The following walkthrough defines the planned
-[config_workflow_example](../../apps/config_workflow_example/README.md), with acceptance
-commands to run after implementation. Use the same approach in your own app. Run
+The following walkthrough uses
+[config_workflow_example](../../apps/config_workflow_example/README.md). Use the same approach in your own app. Run
 commands from the repository root; see [Build](../../README.md#build) for initial setup.
 
 Choose the parameters your app needs and put them in a TOML file inside the app's

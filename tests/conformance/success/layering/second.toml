@@ -1,5 +1,0 @@
-numbers = [3]
-[service]
-port = 9100
-[service.labels]
-second = "yes"

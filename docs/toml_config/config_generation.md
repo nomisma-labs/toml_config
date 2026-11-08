@@ -1,9 +1,5 @@
 # Config generation
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
 `tcfggen.py` produces application TOML from tcfg sources. It can run directly or
 through the [build system](build_system_integration.md), using Python 3.11+ and
 the standard library. `tomllib` reads TOML; a repository-owned deterministic writer

@@ -3,94 +3,149 @@
 
 module;
 
-#include <exception>
-#include <filesystem>
-#include <functional>
-#include <optional>
-#include <stdexcept>
-#include <string>
-#include <toml.hpp>
-#include <utility>
-#include <vector>
+#include "toml11.h"
 
 export module nom.toml_config;
 
-export namespace nom::config
+import std;
+
+export import nom.config_types;
+export import :mapping;
+export import :runtime;
+
+export namespace nom::tcfg
 {
-    class error : public std::runtime_error
+    namespace detail
     {
-    public:
-        using std::runtime_error::runtime_error;
-    };
-
-    struct document
-    {
-        toml::value value;
-    };
-
-    document load(const std::filesystem::path& input);
-    std::string format(const document& config);
-
-    enum class location_kind
-    {
-        explicit_file,
-        environment,
-        search_directory,
-        adjacent,
-        packaged
-    };
-
-    struct located_config
-    {
-        std::filesystem::path file;
-        location_kind source;
-    };
-
-    struct application_options
-    {
-        // Empty selects the running executable lazily, only for directory discovery.
-        std::filesystem::path executable;
-        std::string app_name;
-        std::optional<std::filesystem::path> config_file;
-        std::vector<std::filesystem::path> config_dirs;
-        std::vector<std::string> remaining_arguments;
-        bool check_config{false};
-        bool print_config{false};
-        bool help{false};
-    };
-
-    // Parsing does no filesystem or OS discovery, and never exits or prints.
-    // Unknown arguments are returned to the application.
-    application_options parse_arguments(int argc, const char* const* argv);
-    std::string argument_help();
-    located_config locate_config(const application_options& options,
-                                 const std::function<std::optional<std::string>(const std::string&)>& environment = {});
-    std::filesystem::path resolve_path(const located_config& location, const std::filesystem::path& value);
-
-    template <typename Config> Config bind(const document& input)
-    {
-        try
+        template <typename Config>
+        Config map_loaded_config(const toml::value& document, const config_location& location)
         {
-            return toml::get<Config>(input.value);
+            try
+            {
+                return toml::get<Config>(document);
+            }
+            catch (const std::bad_alloc&)
+            {
+                throw;
+            }
+            catch (const mapping_error& error)
+            {
+                throw config_error(config_stage::mapping, error.what(), location.path, error.pointer);
+            }
+            catch (const std::exception& error)
+            {
+                throw config_error(config_stage::mapping, error.what(), location.path);
+            }
         }
-        catch (const std::exception& exception)
-        {
-            throw error(std::string("configuration binding failed: ") + exception.what());
-        }
-    }
 
-    template <typename Config> struct initialized
+    } // namespace detail
+
+    template <typename Config> struct loaded_config
     {
         Config value;
-        document resolved;
-        located_config location;
+        config_location location;
     };
 
-    template <typename Config> initialized<Config> initialize(const application_options& app)
+    template <typename Config>
+    void print_config_check(std::ostream& output,
+                            const loaded_config<Config>& loaded,
+                            config_check_mode mode = config_check_mode::full)
     {
-        auto location = locate_config(app);
-        auto resolved = load(location.file);
-        auto value = bind<Config>(resolved);
-        return {std::move(value), std::move(resolved), std::move(location)};
+        if (mode == config_check_mode::silent)
+        {
+            output << "OK\n";
+            return;
+        }
+
+        std::string document;
+        try
+        {
+            document = format_config(toml::value(loaded.value));
+        }
+        catch (const std::bad_alloc&)
+        {
+            throw;
+        }
+        catch (const mapping_error& error)
+        {
+            throw config_error(config_stage::mapping, error.what(), loaded.location.path, error.pointer);
+        }
+        catch (const std::exception& error)
+        {
+            throw config_error(config_stage::mapping, error.what(), loaded.location.path);
+        }
+        if (mode == config_check_mode::full)
+        {
+            if (!loaded.location.search_details.empty())
+            {
+                output << "Config lookup:\n" << loaded.location.search_details;
+            }
+            output << "Config OK (" << config_source_name(loaded.location.source) << ')';
+            if (loaded.location.path)
+            {
+                output << ": " << loaded.location.path->string();
+            }
+            output << "\nConfiguration:\n";
+        }
+        output << document << '\n';
     }
-} // namespace nom::config
+
+    template <typename Config>
+    loaded_config<Config> load_config(const config_options& options = {},
+                                      const environment_lookup& environment = process_environment)
+    {
+        static_assert(
+            requires(const Config& value) {
+                { value.validate() } -> std::same_as<std::expected<void, std::string>>;
+            }, "The root config must provide validate() const returning std::expected<void, std::string>");
+
+        auto location = locate_config(options, environment);
+        auto document = read_config(location);
+        substitute_runtime_variables(document, environment, location);
+        if (location.source == config_source::hard_wired && !options.overrides.empty())
+        {
+            // C++ defaults provide the existing TOML targets for hard-wired overrides.
+            auto initial = detail::map_loaded_config<Config>(document, location);
+            try
+            {
+                document = toml::value(initial);
+            }
+            catch (const std::bad_alloc&)
+            {
+                throw;
+            }
+            catch (const mapping_error& error)
+            {
+                throw config_error(config_stage::mapping, error.what(), location.path, error.pointer);
+            }
+            catch (const std::exception& error)
+            {
+                throw config_error(config_stage::mapping, error.what(), location.path);
+            }
+        }
+        apply_config_overrides(
+            document,
+            options.overrides,
+            [](const toml::value& candidate) { (void)toml::get<Config>(candidate); },
+            location);
+        auto value = detail::map_loaded_config<Config>(document, location);
+        std::expected<void, std::string> validation;
+        try
+        {
+            validation = std::as_const(value).validate();
+        }
+        catch (const std::bad_alloc&)
+        {
+            throw;
+        }
+        catch (const std::exception& error)
+        {
+            throw config_error(config_stage::validation, error.what(), location.path);
+        }
+        if (!validation)
+        {
+            throw config_error(config_stage::validation, validation.error(), location.path);
+        }
+        return {std::move(value), std::move(location)};
+    }
+} // namespace nom::tcfg

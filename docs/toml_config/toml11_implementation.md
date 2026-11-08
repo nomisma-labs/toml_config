@@ -1,9 +1,5 @@
 # Implementation details using toml11
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
 This document describes the use of toml11 for the
 [Nomisma mapping contract](toml_cpp_mapping.md). The dependency baseline is the
 repository's pinned toml11 4.4.0. `<toml_config/toml11.h>` includes the native
@@ -230,9 +226,14 @@ handling, and temporal normalization. Parsing or serializing a date does not
 implicitly convert it to a string. Keep these source-value checks separate from
 application-specific ranges and the root `validate()` protocol.
 
-Use `toml::spec::v(1, 0, 0)` explicitly for parse/format calls. Keep toml11 in
+`nom::tcfg::parse_config(text, label)` parses an application table using this
+profile, and `nom::tcfg::format_config(document)` validates and serializes a table.
+The loader and check-output path use these functions. Raw native toml11 calls
+remain available but do not apply the framework profile.
+
+Use `toml::spec::v(1, 0, 0)` explicitly for native parse/format calls. Keep toml11 in
 precompiled mode with `TOML11_COMPILE_SOURCES` propagated to consumers; its compiled
 adapter owns dependency headers, archive, package files, and license installation.
-Verify module/header use and both source and installed consumers on supported
-GCC and Clang toolchains during implementation. These are acceptance requirements,
-not a validation claim for the proposed mapping adapter.
+Source and installed consumer tests exercise module/header use, common config types,
+custom application mappings, and compile-time rejection of unsupported members.
+See [TODO.md](../../TODO.md) for validation evidence.

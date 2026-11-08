@@ -1,6 +1,0 @@
-[service]
-keep = true
-[service.labels]
-fresh = "yes"
-[credentials]
-token = "development"

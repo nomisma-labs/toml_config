@@ -1,9 +1,5 @@
 # Library consumer tests
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../../TODO.md).
-
 This standalone CMake project consumes toml_config in two ways: `find_package`
 against an installation and `FetchContent` against the source tree. The repository
 registers both through `nom_library_usage_tests()`; package tests also require

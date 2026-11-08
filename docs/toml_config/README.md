@@ -1,9 +1,5 @@
 # TOML application config library
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
 Start with the [introduction](intro.md) for the basic config workflow, C++ application
 integration, and structured configs. The guides below cover each part in more detail.
 
@@ -16,8 +12,7 @@ TOML app config framework has 4 components supporting various config related wor
 1. [C++ config loader and app config resolution](app_config_binding.md);
 1. [TOML/C++ mapping](toml_cpp_mapping.md);
 
-Preparation and review gates are described in [Implementation status](../../TODO.md#implementation-status),
-with planned work listed separately in the same file.
+Implementation status and open design decisions are recorded in [TODO.md](../../TODO.md).
 
 ## Implementation notes
 
@@ -27,8 +22,7 @@ with planned work listed separately in the same file.
 
 ## Learning by example
 
-Each planned example includes its own build, usage, and test acceptance instructions.
-Its TOML input files are supplied for documentation review; C++ sources follow after review.
+Each example includes its own build, usage, and test instructions.
 
 - [md_capture](../../apps/md_capture/README.md) — the comprehensive configuration from [tcfg.md](tcfg.md#complete-example).
 - [config_workflow_example](../../apps/config_workflow_example/README.md) — the full build, generation, loading, testing, packaging, and installation workflow.

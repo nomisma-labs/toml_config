@@ -3,13 +3,12 @@
 
 #include "os.h"
 
-#include <filesystem>
-#include <system_error>
+import std;
 
-namespace nom::config::detail::os
+namespace nom::tcfg::os
 {
-    std::filesystem::path current_executable(std::error_code& failure)
+    std::filesystem::path executable_path()
     {
-        return std::filesystem::canonical("/proc/self/exe", failure);
+        return std::filesystem::read_symlink("/proc/self/exe");
     }
-} // namespace nom::config::detail::os
+} // namespace nom::tcfg::os

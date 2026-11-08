@@ -1,9 +1,5 @@
 # Build system integration
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
 The shared CMake kit handles config collection. `toml_config` defines generation,
 config targets, test registration, and installation of generated configs.
 

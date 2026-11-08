@@ -1,9 +1,5 @@
 # config_workflow_example
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
 This application demonstrates the full configuration workflow: build and generate
 configs, load and map them to C++, validate startup, run CTest checks, and install
 the application and generated configs. The linked consumer tests also demonstrate

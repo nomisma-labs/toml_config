@@ -4,12 +4,9 @@
 #pragma once
 
 #include <filesystem>
-#include <system_error>
 
-// Private OS boundary. Keep configuration policy and configuration types out of it.
-namespace nom::config::detail::os
+namespace nom::tcfg::os
 {
-    // Returns the absolute path to the running executable, resolving launch symlinks.
-    // On an OS lookup failure, returns an empty path and sets failure.
-    std::filesystem::path current_executable(std::error_code& failure);
-} // namespace nom::config::detail::os
+    // Private platform boundary; a future common OS utility can own this operation.
+    std::filesystem::path executable_path();
+} // namespace nom::tcfg::os

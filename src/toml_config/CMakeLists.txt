@@ -1,18 +1,17 @@
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
 # SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
 
-# Platform source selection stays at the OS boundary. Add a validated backend
-# here when the shared build framework supports another operating system.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(os_source util/os_linux.cpp)
+    set(toml_config_os_source util/os_linux.cpp)
 else()
-    message(FATAL_ERROR "toml_config has no OS backend for ${CMAKE_SYSTEM_NAME}")
+    message(FATAL_ERROR "toml_config executable discovery is not implemented for ${CMAKE_SYSTEM_NAME}")
 endif()
 
-nom_lib(toml_config
-    MODULES toml_config.cppm
-    SOURCES toml.cpp application.cpp ${os_source}
-    PUBLIC_DEPS toml11::toml11)
-if(nom_install)
-    nom_install_package(TARGETS toml_config DEPENDENCIES "toml11 4.4 CONFIG")
-endif()
+nom_lib(toml_config IMPORT_STD
+    MODULES toml_config.cppm config_mapping.cppm config_runtime.cppm
+    SOURCES config_options.cpp config_locator.cpp config_loader.cpp config_values.cpp ${toml_config_os_source}
+    HEADERS config.h toml11.h
+    PUBLIC_DEPS nom::config_types toml11::toml11
+    PRIVATE_DEPS Boost::program_options)
+
+nom_install_package(TARGETS toml_config DEPENDENCIES base "toml11 4.4 CONFIG" Boost)

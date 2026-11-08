@@ -1,9 +1,5 @@
 # toml_config
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](TODO.md).
-
 <!-- repo-description:begin -->
 **toml_config** is Nomisma's TOML configuration framework for C++ applications.
 It loads settings into typed C++ structures, validates them before application
@@ -48,16 +44,14 @@ Choose a guide according to what you want to do:
 | Compose structured configs and define variants | [tcfg language](docs/toml_config/tcfg.md) |
 | Generate TOML files or inspect available sections | [Config generation](docs/toml_config/config_generation.md) |
 
-Planned examples include their own build, usage, and test instructions:
+Examples include their own build, usage, and test instructions:
 
 - [config_workflow_example](apps/config_workflow_example/README.md): the full generation, loading, validation, and installation workflow.
 - [config_args_example](apps/config_args_example/README.md): ordinary TOML and application arguments alongside config options.
 - [md_capture](apps/md_capture/README.md): a larger configuration with shared fragments and several variants.
 
 See the [tools overview](tools/toml_config/README.md) for the generator, reusable
-Python engine, build utility, and shell helpers. The template sync and shared
-shell helpers are available now; the generator, C++ mapping, and examples described
-here await documentation review and implementation. Release changes are recorded in
+Python engine, build utility, and shell helpers. Release changes are recorded in
 [CHANGELOG.md](CHANGELOG.md); implementation status, planned work, and open decisions
 are in [TODO.md](TODO.md).
 

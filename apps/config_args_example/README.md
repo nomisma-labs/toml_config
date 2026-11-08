@@ -1,9 +1,5 @@
 # config_args_example
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
 This application demonstrates config arguments combined with application-owned
 arguments. The framework parser extracts config options and leaves the remaining
 arguments for the application's Boost.Program_options parser. Startup stays in

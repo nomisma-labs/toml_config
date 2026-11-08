@@ -1,9 +1,5 @@
 # App/Config binding
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
 The locator chooses a TOML file. The loader parses it, applies runtime
 substitution and overrides, then maps and validates the application config.
 C++ does not interpret tcfg inheritance, imports, delete, or override instructions.

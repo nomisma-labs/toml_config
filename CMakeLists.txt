@@ -18,10 +18,11 @@ nom_project_options()
 # outermost FetchContent_Declare wins, so every repo shares one copy.
 include(cmake/toml_config/toml_dependency.cmake)
 toml_config_find_toml11()
-include(cmake/toml_config/tcfg.cmake)
-if(nom_install)
-    toml_config_install_tooling()
-endif()
+include(cmake/toml_config/config.cmake)
+nom_require_submodule(external/base)
+FetchContent_Declare(base SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/base)
+FetchContent_MakeAvailable(base)
+nom_find_boost()
 
 # Discover Catch2 before any code directory can register an inline test suite.
 if(nom_build_tests)

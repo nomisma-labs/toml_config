@@ -1,10 +1,6 @@
 # md_capture
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
-This is the planned application counterpart of the [complete example in tcfg.md](../../docs/toml_config/tcfg.md#complete-example).
+This is the runnable application counterpart of the [complete example in tcfg.md](../../docs/toml_config/tcfg.md#complete-example).
 It demonstrates a nested market-data capture configuration, inheritance, donor
 imports, fragment imports, deletion, and replacement. The sample simulates startup
 by printing the resolved capture settings after mapping and validation.

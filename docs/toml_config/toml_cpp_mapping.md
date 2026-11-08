@@ -1,9 +1,5 @@
 # TOML/C++ mapping
 
-> **Documentation review draft — implementation pending.** This page defines the
-> target contract. Commands and APIs below are implementation acceptance criteria,
-> not claims that this checkout already supports them. See [status](../../TODO.md).
-
 Mapping connects TOML values to application-owned C++ config structures. The
 [loader](app_config_binding.md#loading-and-overrides) handles config resolution,
 reading, environment substitution, and runtime overrides. The mapping layer knows
@@ -18,7 +14,8 @@ Include `<toml_config/config.h>` for `NOM_TCONFIG` and the toml11 dependency.
 
 The Nomisma macro `NOM_TCONFIG` declares which members participate in TOML/C++
 mapping and checks that their types are enabled for config use. TOML keys have
-the same names as the C++ members:
+the same names as the C++ members. A single `NOM_TCONFIG` mapping supports up to 32 member names
+through toml11's macro expansion helper:
 
 ```cpp
 #include <toml_config/config.h>
@@ -60,7 +57,7 @@ For `address = "localhost"`, this returns a config with a timeout of `5` and
 an empty optional. `toml::value serialized(config);` converts it back to a TOML
 table. Place `NOM_TCONFIG` in the same namespace as the config type.
 
-The planned [config_workflow_example](../../apps/config_workflow_example/README.md)
+The [config_workflow_example](../../apps/config_workflow_example/README.md)
 combines `NOM_TCONFIG`, defaulted and optional members, and root validation with
 the loader. Nested config structures declare their own mappings. Supported types
 include booleans, strings, checked numeric types, nested configs, vectors, and
