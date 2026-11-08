@@ -6,6 +6,8 @@ and versions follow [Semantic Versioning](https://semver.org); how to release:
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-08
+
 - Add the tcfg section language and `tcfggen.py`, with inheritance, literal imports,
   fragment pointers, merge/delete/override instructions, and generation/runtime variables.
 - Add TOML 1.0 value validation shared by the Python tooling and C++ runtime,

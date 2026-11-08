@@ -1,7 +1,7 @@
 # TOML framework implementation
 
-The documentation and implementation ports are complete. The implementation is
-ready for the requested review; review feedback is the next step.
+The documentation and implementation reviews are complete. The first version was
+accepted on 2026-11-08 and forms the 0.1.0 release baseline.
 
 ## Completed stages
 
@@ -24,7 +24,7 @@ ready for the requested review; review feedback is the next step.
    behavior and completed GCC/Clang builds, source/package consumers, application
    CLI tests, generation/build tests, and repository checks.
 
-## Review points retained
+## Retained decisions and possible follow-ups
 
 - `[[sections]]` is the multi-section envelope, with `[sections.tcfg]` metadata;
   a root `[tcfg]` table is the single-section shorthand. Review this naming later.
@@ -63,4 +63,4 @@ Validated on 2026-11-08 with GCC 16, Clang 22, and Python 3.14.4:
   all three application CLI suites, generated config checks, and source/installed
   consumers with unsupported-type compile-failure tests.
 - Documentation local links, copied Bash helper identity, and `git diff --check`
-  passed. No commit, tag, or publication is part of this review checkpoint.
+  passed.
