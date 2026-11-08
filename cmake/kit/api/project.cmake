@@ -8,10 +8,10 @@
 # the calling directory, so the project's CMake files never spell out the project name:
 #
 #   option                   variable            default             controls
-#   <PROJECT>_BUILD_TESTS    nom_build_tests     ON when top level   tests/
-#   <PROJECT>_BUILD_APPS     nom_build_apps      ON when top level   apps/, including the sandbox
+#   <PROJECT>_BUILD_TESTS    nom_build_tests     ON when top level   test targets and registration
+#   <PROJECT>_BUILD_APPS     nom_build_apps      ON when top level   apps and config collection
 #   <PROJECT>_BUILD_PYTHON   nom_build_python    OFF                 optional Python extensions
-#   <PROJECT>_INSTALL        nom_install         ON                  install rules and the package config
+#   <PROJECT>_INSTALL        nom_install         ON                  native install rules and package config
 function(nom_project_options)
     # Shared across composed repos; custom presets can inherit their parent's app selection.
     set(NOM_BUILD_PRESET dev CACHE STRING "App selection preset; complete includes every app")

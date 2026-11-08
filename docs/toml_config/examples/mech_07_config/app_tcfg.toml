@@ -1,0 +1,31 @@
+[[sections]]
+[sections.tcfg]
+name = "base"
+gen_file = "app.toml"
+
+[sections.log]
+level = "debug"
+
+[sections.log.file]
+name = "dev.log"
+rotationSize = 1500000
+
+[sections.connection]
+address = "wss://dev.example/ws"
+timeout_s = 5
+
+[sections.subscription]
+symbols = ["btcusdt", "solusdt"]
+channels = ["trade", "depth"]
+
+[[sections]]
+[sections.tcfg]
+name = "ci"
+extend = "base"
+import = ["connection.toml", "deployment.toml"]
+
+[sections.log]
+level = "error"
+
+[sections.connection]
+timeout_s = 30

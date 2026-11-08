@@ -1,0 +1,17 @@
+[log]
+level = "warn"
+file = "log/%Y%m%d/md_capture.log"
+
+[connection]
+address = "wss://current.example/ws"
+timeout_s = 20
+
+[connection.snapshot]
+address = "wss://snapshot.current.example/ws"
+
+[subscription]
+symbols = ["btcusdt", "ethusdt"]
+channels = ["trade", "depth"]
+
+[md_log]
+file = "md/%Y%m%d/binance-spot-%Y%m%d-%H.md"

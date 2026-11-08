@@ -1,0 +1,10 @@
+[tcfg]
+name = "dev"
+gen_file = "app.toml"
+
+[log]
+level = "debug"
+
+[subscription]
+symbols = ["btcusdt"]
+channels = ["trade", "depth"]

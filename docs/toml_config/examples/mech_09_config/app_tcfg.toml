@@ -1,0 +1,29 @@
+[[sections]]
+[sections.tcfg]
+name = "base"
+gen_file = "app.toml"
+
+[sections.log]
+level = "debug"
+file = "capture.log"
+
+[sections.subscription]
+symbols = ["btcusdt"]
+channels = ["trade", "depth"]
+snapshot = true
+
+[[sections]]
+[sections.tcfg]
+name = "ci"
+extend = "base"
+
+[sections.subscription]
+"tcfg:override" = "tcfg:import subscription.toml"
+
+[[sections]]
+[sections.tcfg]
+name = "prod"
+extend = "ci"
+
+[sections.subscription]
+"tcfg:override" = "tcfg:import markets.toml:/perps"

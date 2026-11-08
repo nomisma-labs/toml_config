@@ -1,0 +1,26 @@
+[[sections]]
+[sections.tcfg]
+name = "common"
+gen_file = "app.toml"
+import = ["app.toml"]
+generate = false
+
+[sections.log]
+level = "debug"
+
+[[sections]]
+[sections.tcfg]
+name = "ci"
+extend = "common"
+
+[sections.log]
+level = "warn"
+
+[[sections]]
+[sections.tcfg]
+name = "prod"
+extend = "ci"
+gen_file = "prod.toml"
+
+[sections.subscription]
+symbols = "tcfg:import symbol.toml:/symbols"

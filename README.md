@@ -1,83 +1,78 @@
 # toml_config
 
+> **Documentation review draft — implementation pending.** This page defines the
+> target contract. Commands and APIs below are implementation acceptance criteria,
+> not claims that this checkout already supports them. See [status](TODO.md).
+
 <!-- repo-description:begin -->
-Application configuration built on TOML. **tcfg** (“tee-config”) composes `.tcfg`
-files into ordinary TOML using the Python generator. C++ applications locate,
-parse, and bind the resulting TOML to their settings structures.
+**toml_config** is Nomisma's TOML configuration framework for C++ applications.
+It loads settings into typed C++ structures, validates them before application
+startup, and generates configuration variants from structured configs.
 <!-- repo-description:end -->
 
-```toml
-[tcfg]
-version = 1
-extends = ["defaults.toml"]
+Start with the [introduction](docs/toml_config/intro.md): create a config file,
+build and load it in your app, then explore structured configs and variants.
 
-[[tcfg.import]]
-file = "symbols.toml"
-select = ["symbols"]
-into = ["feed", "symbols"]
+## Build
 
-[feed]
-timeout_ms = 2000
-```
+The C++ library uses named modules and `import std`. The supported toolchain uses
+CMake 4.4.x, Ninja, GCC 16 or Clang 22, and libstdc++ 16 module sources. Follow the
+[toolchain setup](docs/kit/build.md#toolchain) for compiler and dependency installation.
+The `dev` preset uses GCC 16.
 
-Layers merge tables recursively; arrays and scalar values replace. Explicit
-directives support fragment imports, subtree replacement/deletion, and environment
-bindings. Required missing inputs, invalid directives, and reference cycles fail
-with diagnostics. Each deployment variant has its own entry file.
-
-The C++23 library exposes `import nom.toml_config;`, configuration discovery,
-and typed initialization. It uses toml11 v4.4.0's non-intrusive mapping
-macros. The Python generator requires Python 3.11+ and has no runtime package
-dependencies. CMake generation is optional and tracks transitive input files.
-
-## Try it
+Initialize dependencies, then build the library and examples and run the fast tests:
 
 ```bash
 git submodule update --init --recursive
-cmake --preset dev
-cmake --build --preset dev -j 4
-ctest --preset dev
-
-build/dev/bin/capture_example --check-config
-
-python3 cfggen.py apps/capture_example/config/debug.tcfg -o build/capture.toml
-build/dev/bin/capture_example --config build/capture.toml --check-config
+cmake --workflow --preset dev
 ```
 
-The example demonstrates nested mappings and initialization without making
-network connections. By default, CMake generates its TOML from the sample tcfg
-entry. With `-DTOML_CONFIG_GENERATE_EXAMPLE=OFF`, the sample uses the ordinary
-`capture_example.toml` collected from its `config/` directory. Library-only builds
-can set
-`-DTOML_CONFIG_BUILD_APPS=OFF -DTOML_CONFIG_BUILD_TESTS=OFF` and require no Python.
+Executables are written to `build/dev/bin/`. For a fresh build with all tests,
+including integration tests, run `./bootstrap.sh complete`; it recreates
+`build/complete/` and runs the repository checks. The
+[build guide](docs/kit/build.md) covers incremental builds, other presets,
+installation, and validation across toolchains. For using `toml_config` from
+another project, the [consumer example](tests/integration/library_usage/README.md)
+covers source and installed-package integration, including module setup.
 
-## Learn and integrate
+## Docs
 
-- [Author and application guide](docs/guide.md): workflows, bindings, discovery,
-  CMake integration, and deployment.
-- [tcfg 1 specification](docs/tcfg.md): language contract and portability rules.
-- [Parser choice](docs/parser_choice.md): toml11 evaluation and module boundary.
-- [Build reference](docs/kit/build.md): GCC/Clang toolchains, presets, and shared kit.
+The [framework documentation](docs/toml_config/README.md) is the main reference.
+Choose a guide according to what you want to do:
 
-Install after building with `cmake --install build/dev --prefix <prefix>`.
-Consumers use `find_package(toml_config CONFIG REQUIRED)` and link
-`nom::toml_config`. Module interfaces, the compiled TOML dependency, its headers
-and license, and optional Python/CMake tooling are installed with the package.
-
-## Repository layout
-
-| Path | Purpose |
+| Task | Guide |
 |---|---|
-| `core/toml_config/` | C++ TOML loading, discovery, and public module |
-| `core/toml_config/util/` | Private OS utility and platform implementation |
-| `cfggen.py` | Standalone Python generator launcher |
-| `python/toml_config/` | Python interpreter, serializer, and CLI |
-| `cmake/tcfg.cmake` | Optional configuration generation helper |
-| `apps/capture_example/` | Typed initialization example and configurations |
-| `tests/conformance/` | Python generator's accepted/rejected language cases |
-| `tests/unit/`, `tests/python/`, `tests/integration/` | Behavior and integration tests |
+| Select configs, use environment variables, or override values | [Loading and application integration](docs/toml_config/app_config_binding.md) |
+| Define C++ config types, defaults, and validation | [TOML/C++ mapping](docs/toml_config/toml_cpp_mapping.md) |
+| Generate, test, and install configs through CMake | [Build integration](docs/toml_config/build_system_integration.md) |
+| Compose structured configs and define variants | [tcfg language](docs/toml_config/tcfg.md) |
+| Generate TOML files or inspect available sections | [Config generation](docs/toml_config/config_generation.md) |
 
-Run `./bootstrap.sh` for the repository's full validation workflow, or select a
-preset with `./bootstrap.sh ci`. See [AGENTS.md](AGENTS.md) and
-[the conventions](docs/kit/conventions.md) before contributing. The language
-specification and fixtures can also guide future implementations in other languages.
+Planned examples include their own build, usage, and test instructions:
+
+- [config_workflow_example](apps/config_workflow_example/README.md): the full generation, loading, validation, and installation workflow.
+- [config_args_example](apps/config_args_example/README.md): ordinary TOML and application arguments alongside config options.
+- [md_capture](apps/md_capture/README.md): a larger configuration with shared fragments and several variants.
+
+See the [tools overview](tools/toml_config/README.md) for the generator, reusable
+Python engine, build utility, and shell helpers. The template sync and shared
+shell helpers are available now; the generator, C++ mapping, and examples described
+here await documentation review and implementation. Release changes are recorded in
+[CHANGELOG.md](CHANGELOG.md); implementation status, planned work, and open decisions
+are in [TODO.md](TODO.md).
+
+## Platform context
+
+`toml_config` uses Nomisma's shared build kit, maintained in `cmake_template`.
+The [platform documentation](docs/kit/README.md) describes the general build and
+repository rules. Contributors can use the [conventions](docs/kit/conventions.md)
+and [recipes for adding libraries, apps, tests, and dependencies](docs/kit/howto.md).
+
+The `base` library supplies the format-independent configuration types;
+toml11 provides TOML parsing and mapping, and Boost.Program_options supports argument
+parsing. See the [mapping implementation notes](docs/toml_config/toml11_implementation.md)
+for those boundaries. [json_config](https://github.com/nomisma-labs/json_config) is
+the alternative JSON configuration framework. A project chooses one framework;
+coexistence and compatibility between their tools or APIs are not requirements.
+
+Instructions for automated contributors are in [AGENTS.md](AGENTS.md).

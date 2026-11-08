@@ -8,10 +8,15 @@ include(CMakePackageConfigHelpers)
 #
 # Installs the targets with their header and module file sets, and generates
 # <project>-config.cmake, so consumers can find_package(<project>) and link nom::<target>.
-# DEPENDENCIES are the packages the public interface needs; the config finds them first.
-# Module interface sources are installed next to the headers; consumers compile their own
-# BMIs, since BMIs are specific to the compiler and its flags.
+# DEPENDENCIES are the packages the public interface needs; the config finds them first, with
+# the version and components a kit service found them with (NOM_FIND_ARGS_<package>, which
+# nom_find_boost() records). Module interface sources are installed next to the headers;
+# consumers compile their own BMIs, since BMIs are specific to the compiler and its flags.
+# Does nothing when nom_install is OFF.
 function(nom_install_package)
+    if(NOT nom_install)
+        return()
+    endif()
     cmake_parse_arguments(PARSE_ARGV 0 arg "" "" "TARGETS;DEPENDENCIES")
     set(config_dir ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
@@ -35,7 +40,10 @@ function(nom_install_package)
 
     set(NOM_PACKAGE_DEPENDENCIES "")
     foreach(dependency IN LISTS arg_DEPENDENCIES)
-        string(APPEND NOM_PACKAGE_DEPENDENCIES "find_dependency(${dependency})\n")
+        get_property(arguments GLOBAL PROPERTY NOM_FIND_ARGS_${dependency})
+        list(PREPEND arguments ${dependency})
+        list(JOIN arguments " " arguments)
+        string(APPEND NOM_PACKAGE_DEPENDENCIES "find_dependency(${arguments})\n")
     endforeach()
     configure_package_config_file(${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../templates/package_config.cmake.in
         ${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake

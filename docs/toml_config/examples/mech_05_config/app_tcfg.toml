@@ -1,0 +1,21 @@
+[[sections]]
+[sections.tcfg]
+name = "base"
+gen_file = "app.toml"
+
+[sections.log]
+level = "debug"
+
+[sections.subscription]
+symbols = ["btcusdt"]
+channels = ["trade", "depth"]
+
+[[sections]]
+[sections.tcfg]
+name = "ci"
+extend = "base"
+
+[[sections]]
+[sections.tcfg]
+name = "prod"
+extend = "ci"

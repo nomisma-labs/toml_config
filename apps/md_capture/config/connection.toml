@@ -1,0 +1,6 @@
+[connection]
+address = "wss://current.example/ws"
+timeout_s = 20
+
+[connection.snapshot]
+address = "wss://snapshot.current.example/ws"

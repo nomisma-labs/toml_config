@@ -41,12 +41,13 @@ git push
 `tools/init_project.py <name>` turns the copy into an empty repo. It removes the template's example
 code instead of renaming it:
 
-- deletes the example code (`core/example/`, `apps/hello/`, the example unit tests, library usage
-  and Python package test projects, root `pyproject.toml`, `python/`, the nlohmann submodule),
-  the lab (the sandbox experiments, `docs/lab/`) and the
-  template-only files (`docker/`, the `ci-image` and `ci-template` workflows, the template sync
-  test, and itself);
-- retains the Metal v2.1.4 submodule and `nom_find_metal()` call as the shared dependency baseline;
+- deletes the example code (`src/example/`, `apps/hello/`, `apps/boost_example/`, the example
+  unit tests and library usage test project, root `pyproject.toml`, `python/`, the nlohmann
+  submodule), the lab (the sandbox experiments, `docs/lab/`) and the template-only files
+  (`docker/`, the `ci-image` and `ci-template` workflows, the kit's own tests in `tests/kit/`,
+  `tools/toolchain_updates.py`, and itself);
+- retains an empty `src/` source container, registered in the root `CMakeLists.txt`;
+  put each library under `src/<component>/`;
 - retains optional Python packaging helpers and pinned build-tool requirements; generated repos
   start without a Python package and add one using [howto.md](howto.md#a-python-package);
 - deletes the lines and blocks the template marks as template-only;
@@ -58,11 +59,17 @@ code instead of renaming it:
   `--template-url <url>` instead of setting the URL in the template.
 
 It checks everything first and stops without changing anything if the repo doesn't look like a
-fresh copy of the template. `./bootstrap.sh` validates the initialized repo locally; its regular
-`ci` workflow validates it on GitHub. The new repo starts without example tests; add your own
-code and tests with the recipes in [howto.md](howto.md), then run bootstrap again.
+fresh copy of the template. `./bootstrap.sh` validates the initialized repo locally and enables
+its [git hooks](build.md#git-hooks); its regular `ci` workflow validates it on GitHub. The new
+repo starts without example tests; add your own code and tests with the recipes in
+[howto.md](howto.md), then run bootstrap again.
 Define new Nomisma library APIs in named modules and import them in apps and tests.
 Keep macro headers and third-party dependency headers where needed.
+
+Each derived repo declares its dependencies in its own `.gitmodules`, CMake target setup and
+installed-package dependency lists. Follow the [dependency recipe](howto.md#a-dependency) in
+the consuming repo. `cmake_template` supplies shared build mechanisms; it is not a registry of
+dependencies between derived repos.
 
 ## Per-repo settings
 
@@ -71,21 +78,23 @@ Keep macro headers and third-party dependency headers where needed.
 - **Private submodules in CI:** the token GitHub Actions gives each job can read only its own
   repo, so checking out one of our private repos (for example `external/config`) fails. Use an
   organization-owned GitHub App with read-only access to repository contents:
-  - before adding the first private dependency, add token support in `cmake_template` and sync
-    it into derived repos: each workflow gets a short-lived token with
+  - when private submodules are needed in CI, add generic token support in `cmake_template`
+    and sync it into the consuming repos: each workflow gets a short-lived token with
     `actions/create-github-app-token` and passes it to `actions/checkout` (`token:`, with
     `submodules: recursive`);
   - the App's ID and private key are Actions secrets. On the Free plan private repos can't use
     organization secrets, so each repo needs its own copy.
 
-  The template itself has only public submodules, so it doesn't need this yet.
+  This authentication is shared CI infrastructure; individual dependencies stay in the
+  consuming repos. The template itself has only public submodules, so it doesn't need this yet.
 
 ## Keeping repos in sync
 
 Template-owned paths are the kits (`cmake/kit/`, `tools/kit/`, `docs/kit/`), `bootstrap.sh`,
 `.clang-format`, `.clang-tidy`, `.clangd`, `.editorconfig` and `.github/workflows/ci.yml`.
-Change them only in `cmake_template`; a repo keeps its own CMake files, tools and docs in
-`cmake/`, `tools/` and `docs/`, outside the kits. To bring a repo up to date:
+Change them only in `cmake_template`; a repo keeps its own CMake files in `cmake/<repo>/`, and
+its tools in `tools/<repo>/` and docs in `docs/<repo>/`, outside the kits. These directories
+have no additional layer grouping. To bring a repo up to date:
 
 ```bash
 python3 tools/kit/sync_template.py      # to the newest release, or --to <release tag>
@@ -109,24 +118,29 @@ The script syncs from the template commit recorded in `.template_ref`:
 
 The target release's copy of the script does the work, so the file list and the rules come from
 the release being synced to. The script syncs the repo of the current directory, so any copy of
-it can run a sync, for example `python3 ../cmake_template/tools/kit/sync_template.py`.
+it can run a sync, for example `python3 /path/to/cmake_template/tools/kit/sync_template.py`.
 
 The sync transfers shared build rules and guidance, not repository-owned code. A change to the
 composition policy therefore has two parts: sync the template-owned paths, then migrate the
-repo's `core/`, apps, tests and CMake target declarations to that policy. For the native module
+repo's `src/`, apps, tests and CMake target declarations to that policy. For the native module
 transition, move library declarations into interfaces or partitions, and make all consumers
 import the primary module. Keep macro and dependency
 headers where their boundary requires them, and validate source and installed-package usage.
+
+When adopting the `src/` layout, move the repository's library sources and update its root
+`CMakeLists.txt` and any explicit source paths. Coordinate internal dependency pins: the
+outermost kit supplies helpers for the whole build, so a dependency still using `core/`
+must also migrate or declare its file-set `BASE_DIR` explicitly. Recreate build trees and
+compilation databases after the moves; kit synchronization does not perform these steps.
 
 The script syncs committed template revisions, not uncommitted working-tree changes. While
 reviewing an unpublished template change, keep its shared files in the template checkout;
 assess the repo-specific migration separately and perform the recorded sync once the template
 revision is available.
 
-Dependency migrations also update repository-owned files: sync supplies `nom_find_metal()`,
-but existing repos add or retain the Metal submodule in `.gitmodules`, call the helper from their
-top-level `CMakeLists.txt`, and use `nom::metal` in place of local adapters. Public dependency
-declarations in installed packages use `nom_metal`.
+Dependency changes also update repository-owned files: `.gitmodules`, the top-level
+`CMakeLists.txt`, helpers in `cmake/<repo>/` and the dependencies of installed packages. The
+release's upgrade steps list them.
 
 Python packaging follows the same boundary: synchronize the kit, tools and shared guidance,
 then add repository-owned `pyproject.toml`, binding sources and target declarations. Keep the

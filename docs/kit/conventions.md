@@ -25,7 +25,7 @@ parameters**, so compile-time parameters stand out. Macros are UPPER_CASE, and n
 | Template template parameter | `PascalCase` | `template <template <typename> class Node>` |
 | Concept | `snake_case`, no `is_`/`has_` | `request_handler`, `handles_request` |
 | Type trait | `is_…` / `has_…` | `has_on_request` |
-| Trait shortcuts | `_v` only for `::value`, `_t` only for `::type` | `has_on_request_v`, `use_override_if_defined_t` |
+| Trait shortcuts | `_v` only for `::value`, `_t` only for `::type` | `has_on_request_v`, `apply_custom_traits_t` |
 | CRTP parameter | `Derived` | `template <typename Derived>` |
 | Internal namespace | `detail` (not `impl`) | `nom::detail` |
 | Macro | `UPPER_CASE` | `DEFINE_CONFIG` |
@@ -38,19 +38,25 @@ parameters**, so compile-time parameters stand out. Macros are UPPER_CASE, and n
 
 ## Files, directories, includes, modules, tests
 
+All libraries use `src/` as their source root, regardless of architectural layer.
+`<component>` identifies the library and normally matches `<repo>` for a repository's main
+library. A repository can contain several components under `src/`.
+
 | Item | Rule | Example |
 |---|---|---|
-| Repo, directory and file names | `snake_case` | `cmake_template`, `override_traits.cppm` |
+| Repo, directory and file names | `snake_case` | `cmake_template`, `custom_traits.cppm` |
 | Extensions | `.cppm` module interface or partition, `.cpp` implementation unit or ordinary source, `.h` macro or dependency header, `_test.cxx` test | `relay_test.cxx` |
-| Library sources | `core/<repo>/…` | `core/assembly/relay.cppm` |
+| Library sources | `src/<component>/…` | `src/assembly/relay.cppm`, `src/asio_comm/timer.cppm` |
 | Imports | Nomisma library API through its primary module | `import nom.assembly;` |
-| Includes | Remaining public headers use `<repo/file.h>`; name clashes are handled case by case | `#include <example/macros.h>` |
+| Includes | Remaining public headers use `<component/file.h>` without the `src/` prefix; name clashes are handled case by case | `#include <example/macros.h>` |
 | One concept per file | The file is named after it | `relay.cppm`, `constructible.cppm` |
-| Primary module | `nom.<repo>`, file `core/<repo>/<repo>.cppm` | `export module nom.assembly;` |
-| Module partition | `nom.<repo>:<part>`, file `core/<repo>/<part>.cppm` | `export module nom.assembly:relay;` |
+| Primary module | Usually `nom.<component>`, file `src/<component>/<component>.cppm` | `export module nom.assembly;` |
+| Module partition | `nom.<component>:<part>`, file `src/<component>/<part>.cppm` | `export module nom.assembly:relay;` |
 | Unit tests | `tests/unit/<suite>/<file>_test.cxx`, or inline next to the code at `<code dir>/tests/<suite>/<file>_test.cxx`; created with `nom_c2test()` and labeled `unit`. One executable per suite, target `<project>_<suite>`; test-only headers are `<name>_test.h`. | `tests/unit/assembly/relay_test.cxx` |
 | Integration tests | `tests/integration/<scenario>/`, with C++ sources named `<file>_test.cxx`, labeled `integration`; library usage tests build a separate CMake project against the library. | `tests/integration/library_usage/` |
 | Apps | `apps/<app>/main.cpp`, with optional `apps/<app>/config/` staged into the build tree | `apps/relay_handler_contract/` |
+| Repository documentation | `docs/<repo>/`, alongside shared `docs/kit/`; no layer subdirectories | `docs/asio_comm/` |
+| Repository tools | `tools/<repo>/`, alongside shared `tools/kit/`; no layer subdirectories | `tools/json_config/` |
 
 Use `*.cpp` to select regular C++ sources and `*_test.cxx` to select C++ test sources.
 This applies to unit, inline, and integration tests. Test-only headers use `_test.h`.
@@ -62,9 +68,13 @@ namespace hierarchy:
 `nom.assembly` can export names directly in `nom`.
 
 Macros stay in headers. Third-party dependencies can be included in a global module fragment,
-hidden behind a module API, or consumed through their headers when needed. Include the standard
-library headers each file uses; `import std;` is a separate toolchain investigation.
-See [build.md](build.md#modules).
+hidden behind a module API, or consumed through their headers when needed. Use `import std;`
+in each file that uses standard-library declarations. Keep macro-bearing standard headers
+(such as `<cassert>`) and third-party includes before imports, in the global module fragment
+for module units. Enable standard-library module detection before `project()` and opt each
+compiled consumer target in with `IMPORT_STD` in its kit helper call. For targets created
+outside the kit, use `nom_enable_std_modules(target)` after creating the target.
+See [build.md](build.md#modules) for the supported toolchain and consumer setup.
 
 ## CMake names
 
@@ -75,7 +85,7 @@ Target names are global in a superbuild, so every target carries its project's n
 | Project | The repo name | `project(assembly …)` |
 | Main library target | The project name, exported as `nom::<project>` | `assembly` / `nom::assembly` |
 | Other targets | `<project>_<name>` | `assembly_tests`, `config_generate` |
-| Executables | Target `<project>_<app>` with the short `OUTPUT_NAME` `<app>` (`nom_app` does this) | `assembly_relay_handler_contract` → `relay_handler_contract` |
+| Executables | `nom_app(<app>)` creates target `<app>` and binary `<app>`; choose a name unique across the whole build | `relay_handler_contract` |
 | Options and cache variables | `<PROJECT>_<NAME>`; tests and apps default to ON only when the project is top level | `ASSEMBLY_BUILD_TESTS` |
 | Kit functions | `nom_` prefix; use short names for target helpers | `nom_lib()`, `nom_app()`, `nom_c2test()` |
 | Local variables | `lower_snake_case` | `set(module_files …)` |
@@ -87,6 +97,9 @@ Target names are global in a superbuild, so every target carries its project's n
 | Formatting | `.clang-format`; `tools/kit/checks/format.sh` | `tools/kit/checks/format.sh --fix` |
 | Naming | `.clang-tidy` (readability-identifier-naming); `tools/kit/checks/naming.sh` | rename by hand |
 | License header | `python3 tools/kit/checks/headers.py` | add the header below |
+
+The pre-commit hook runs the formatting and header checks on each commit's staged files
+([build.md](build.md#git-hooks)).
 
 Every source file (C++, CMake, Python, shell, YAML, Dockerfile) starts with, after an optional shebang:
 

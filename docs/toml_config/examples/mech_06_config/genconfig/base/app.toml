@@ -1,0 +1,14 @@
+[log]
+level = "debug"
+
+[log.file]
+name = "dev.log"
+rotationSize = 1500000
+
+[connection]
+address = "wss://dev.example/ws"
+timeout_s = 5
+
+[subscription]
+symbols = ["btcusdt", "solusdt"]
+channels = ["trade", "depth"]

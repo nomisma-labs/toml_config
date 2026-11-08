@@ -1,0 +1,8 @@
+[log]
+level = "warn"
+
+[log.file]
+name = "ci.log"
+
+[connection]
+timeout_s = 20

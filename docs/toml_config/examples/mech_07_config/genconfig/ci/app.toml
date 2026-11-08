@@ -1,0 +1,14 @@
+[log]
+level = "error"
+
+[log.file]
+name = "ci.log"
+rotationSize = 1500000
+
+[connection]
+address = "wss://ci.example/ws"
+timeout_s = 30
+
+[subscription]
+symbols = ["btcusdt", "solusdt"]
+channels = ["trade", "depth"]

@@ -1,0 +1,14 @@
+[[sections]]
+[sections.tcfg]
+name = "base"
+gen_file = "app.toml"
+
+[sections.log]
+level = "tcfg:import values.toml:/log_level"
+
+[sections.connection]
+timeout_s = "tcfg:import values.toml:/timeout_s"
+
+[sections.subscription]
+symbols = "tcfg:import markets.toml:/spot/symbols"
+channels = "tcfg:import markets.toml:/spot/channels"

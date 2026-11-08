@@ -1,0 +1,8 @@
+[log]
+level = "debug"
+file = "capture.log"
+
+[subscription]
+symbols = ["btcusdt"]
+channels = ["trade", "depth"]
+snapshot = true

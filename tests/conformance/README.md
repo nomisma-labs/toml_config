@@ -1,5 +1,9 @@
 # tcfg conformance corpus
 
+These fixtures validate the implementation present during preparation. They do
+not validate the target [tcfg contract](../../docs/toml_config/tcfg.md), whose
+implementation is pending documentation review. See [status](../../TODO.md).
+
 Each `success/<case>/input.tcfg` must resolve to the typed values in its
 `expected.toml`; serialization layout is immaterial. Helpers belong in the same
 case directory. Each `failure/<case>/input.tcfg` must fail without producing a

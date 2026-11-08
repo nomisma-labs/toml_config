@@ -1,0 +1,40 @@
+[[sections]]
+[sections.tcfg]
+name = "base"
+gen_file = "md_capture.toml"
+import = ["md_capture.toml"]
+
+[[sections]]
+[sections.tcfg]
+name = "ci"
+extend = "base"
+import = ["connection.toml", "deployment.toml"]
+
+[[sections]]
+[sections.tcfg]
+name = "prod"
+extend = "ci"
+
+[sections.subscription]
+symbols = "tcfg:import symbols.toml:/spot"
+
+[[sections]]
+[sections.tcfg]
+name = "prod-liquidation"
+extend = "prod"
+gen_file = "md_capture_liquidation.toml"
+
+[sections.log]
+file = "tcfg:delete"
+
+[sections.connection]
+"tcfg:override" = "tcfg:import md_capture.toml:/connection"
+
+[sections.subscription]
+
+[sections.subscription."tcfg:override"]
+symbols = "tcfg:import symbols.toml:/liquidation"
+channels = ["liquidation"]
+
+[sections.md_log]
+file = "md/%Y%m%d/binance-liquidation-%Y%m%d-%H.md"

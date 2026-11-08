@@ -10,12 +10,17 @@ to select one explicitly; `--help` lists the discovered names. For a personal pr
 matching build and test entries that reference its configure preset. CMake checks the compiler
 and generator from the preset rather than bootstrap guessing them from its name.
 Each run deletes only the selected build directories and previous `build/bootstrap/` logs.
+A `dev` build runs the fast tests; the other presets run every test ([Tests](#tests)).
 Python compatibility/imports, headers and formatting are always checked; naming is included when
 `clang` is selected. A failed check returns a nonzero exit code. Invalid arguments
-are rejected before cleanup.
+are rejected before cleanup. Bootstrap also enables the [git hooks](#git-hooks) for the clone.
+Bootstrap also reports git submodules recorded at an older release than their upstream's newest
+([Dependencies](#dependencies)). In cmake_template, a last step runs `tools/toolchain_updates.py`,
+which reports compilers, Catch2 and CMake newer than the repo uses; other repos don't have it.
 
-Each step reports `PASS`, `FAIL` or `SKIP`, then a summary and next steps; independent checks
-continue after a failure, and only the current run's logs are kept under `build/bootstrap/`. A
+Each step reports `PASS`, `FAIL`, `SKIP` or `NOTE`, then a summary and next steps; independent
+checks continue after a failure, and a note needs no fix to pass. Only the current run's logs are
+kept under `build/bootstrap/`. A
 new repo reports its tests as skipped until it has some. Submodules at unexpected commits are
 reported, not reset. Initializing dependencies, or CMake's fallback download, may need network
 access. Builds use one job fewer than the CPU cores, at least one;
@@ -29,11 +34,12 @@ git submodule update --init --recursive   # once, after cloning
 cmake --preset dev                        # once: configure into build/dev
 cd build/dev
 ninja                                     # build; reruns cmake itself when a CMakeLists.txt changes
-ctest --output-on-failure                 # test; -R <regex> picks tests by name
+ctest --output-on-failure                 # the fast tests; -R <regex> picks tests by name
 bin/<app>                                 # run an app
 ```
 
-Other presets work the same way in `build/<preset>`. `cmake --workflow --preset <preset>`
+Other presets work the same way in `build/<preset>`; `build/complete` has every test, and
+`ctest -j` runs them in parallel there, as the test presets do. `cmake --workflow --preset <preset>`
 configures, builds and tests in one command; CI uses it.
 After changing the compiler, run `./bootstrap.sh` (or `./bootstrap.sh release` for Release)
 to clear both the main build and the nested integration-test builds that cache the compiler.
@@ -44,16 +50,58 @@ to clear both the main build and the nested integration-test builds that cache t
 |---|---|---|
 | Ubuntu | 26.04 LTS | development and CI operating system |
 | GCC | 16 (`g++-16`); installed compiler reports 16.0.1, experimental snapshot 20260322, package `16-20260322-1ubuntu1` | the main compiler |
-| Clang tools | 19 (`clang++-19`, `clangd-19`, `clang-tidy-19`, `clang-scan-deps-19`, `clang-format-19`) | second compiler, sanitizers, IDE, checks |
-| CMake | 3.30 or newer; 4.4.3 locally, Ubuntu package 4.2.3 for CI | build |
+| Clang tools | 22 (`clang++-22`, `clangd-22`, `clang-tidy-22`, `clang-scan-deps-22`, `clang-format-22`); Ubuntu packages `clang-22`, `clang-tools-22`, `clang-tidy-22`, `clang-format-22`, `clangd-22` | second compiler, sanitizers, IDE, checks |
+| CMake | 4.4.x for `import std`; 4.4.4 from Kitware's apt repository, locally and in CI | build |
 | Ninja | 1.11 or newer | generator (Makefiles can't build modules) |
 | Python | 3.10 or newer; 3.14.4 locally | repository scripts use the standard library; optional wheel builds use the separate environment below |
-| Catch2 | 3 (system package, or a pinned download) | tests |
+| Catch2 | 3.16.1, built from source into `/usr/local`, locally and in CI | tests |
+| Boost | 1.90 or newer; Ubuntu packages `libboost-program-options-dev`, `libboost-filesystem-dev`, `libboost-iostreams-dev` (1.90.0) | program options, filesystem and iostreams in every repo |
 
-Only the versioned Clang names exist on Ubuntu (`clang++-19`, not `clang++`), so presets and
+The Clang packages install only versioned names (`clang++-22`, not `clang++`), so presets and
 scripts name them explicitly. The installed GCC package is a development snapshot rather than
 a final GCC 16 release. The CI image installs the same tools from Ubuntu packages; package
 revisions without explicit pins are resolved when the image is built.
+
+Ubuntu packages an older CMake, so CMake comes from [Kitware's apt repository](https://apt.kitware.com).
+To add it to a machine, install its key, then the repository; the `kitware-archive-keyring`
+package keeps the key current from then on:
+
+```bash
+curl -fsSL https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor \
+  | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg > /dev/null
+sudo tee /etc/apt/sources.list.d/kitware.sources > /dev/null <<'SOURCES'
+Types: deb
+URIs: https://apt.kitware.com/ubuntu/
+Suites: resolute
+Components: main
+Signed-By: /usr/share/keyrings/kitware-archive-keyring.gpg
+SOURCES
+sudo apt update && sudo apt install cmake cmake-data kitware-archive-keyring
+```
+
+The CI image pins the CMake package (`CMAKE_VERSION` in `docker/ci/Dockerfile`); cmake_template's
+toolchain report notes when that pin and the installed CMake differ. A plain `apt upgrade` moves a
+machine to Kitware's newest CMake; `sudo apt-mark hold cmake cmake-data` keeps the version until
+you choose to move.
+
+Ubuntu packages an older Catch2, so build the release the kit requires once per machine, with the
+C++ standard the repos use. Without it, every build tree downloads and builds its own copy, which
+takes a few seconds and needs network when the tree is configured:
+
+```bash
+src=$(mktemp -d)
+git clone --depth 1 --branch v3.16.1 https://github.com/catchorg/Catch2.git "$src"
+cmake -S "$src" -B "$src/build" -G Ninja -DCMAKE_CXX_COMPILER=g++-16 -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_STANDARD=23 -DBUILD_TESTING=OFF -DCATCH_INSTALL_DOCS=OFF
+cmake --build "$src/build"
+sudo cmake --install "$src/build"   # into /usr/local
+rm -rf "$src"
+```
+
+The CI image builds the same release (`CATCH2_VERSION` in `docker/ci/Dockerfile`).
+cmake_template's toolchain report shows which Catch2 builds use and notes a mismatch with the image.
+Where `clang-format-22` can't come from packages, `pipx install clang-format==22.1.2` installs the
+same formatter from PyPI as `clang-format`; set `CLANG_FORMAT=clang-format` for the checks and hooks.
 
 ## Python environment
 
@@ -83,7 +131,8 @@ The requirements file pins the packaging tools, including scikit-build-core. The
 environment and `--no-isolation` use those versions without creating another build environment.
 The repository's `pyproject.toml` selects the backend, derives the package version from CMake
 `project()` and enables `<PROJECT>_BUILD_PYTHON`. CMake's `nom_python` install component supplies
-the native package files. Python runtime dependencies remain separate package metadata.
+the native package files, independently of `<PROJECT>_INSTALL`; wheel builds disable the native
+C++ installation. Python runtime dependencies remain separate package metadata.
 
 Packaging is tested on Ubuntu 26.04 with GCC 16 and CPython 3.14.4. A wheel is built for that
 environment, with no claim of compatibility across Linux distributions or Python versions.
@@ -97,14 +146,27 @@ The presets hold the build settings that developers, CI, IDEs and agents share. 
 are in `cmake/kit/presets.json`; a repo's `CMakePresets.json` includes that file and can add
 presets of its own under other names.
 
-| Preset | Compiler and build type | Purpose |
-|---|---|---|
-| `dev` | GCC 16, Debug | daily work |
-| `complete` | GCC 16, Debug | every app, including experiments, regardless of its `BUILD_FOR` list |
-| `release` | GCC 16, Release | benchmarks and production builds |
-| `clang` | Clang 19, Debug | second compiler; its database feeds clangd and clang-tidy |
-| `asan` | Clang 19, Debug, AddressSanitizer + UBSan | memory and undefined-behaviour checks |
-| `ci` | GCC 16, RelWithDebInfo, warnings as errors | CI |
+| Preset | Compiler and build type | Tests | Purpose |
+|---|---|---|---|
+| `dev` | GCC 16, Debug | fast: all but `integration` and `kit` | daily work |
+| `complete` | GCC 16, Debug | all | every app, including experiments, regardless of its `BUILD_FOR` list |
+| `release` | GCC 16, Release | all | benchmarks and production builds |
+| `clang` | Clang 22, Debug | all | second compiler; its database feeds clangd and clang-tidy |
+| `asan` | Clang 22, Debug, AddressSanitizer + UBSan | all | memory errors and undefined behaviour in the code tests run |
+| `ci` | GCC 16, RelWithDebInfo, warnings as errors | all | the GitHub CI build |
+
+`./bootstrap.sh` runs every preset but `release`, which it runs only when named. GitHub CI builds
+`ci`, plus `clang` for the naming check.
+
+- `ci` is the gate: warnings fail it rather than the daily build. It optimizes because some of
+  GCC's warnings, such as `-Wmaybe-uninitialized`, `-Warray-bounds` and `-Wstringop-overflow`,
+  depend on analysis that only optimization runs; a Debug build misses them. It also tests the
+  optimized code with `NDEBUG`, as `release` ships it, while `dev` tests Debug with assertions.
+  Its debug info keeps a crash in CI readable.
+- `asan` builds the code instrumented: AddressSanitizer stops a test at an out-of-bounds access,
+  a use after free or a leak, and UBSan at undefined behaviour such as signed overflow or a
+  misaligned access. It only checks code that tests run, so it finds more as tests grow.
+  Library usage tests build their consumers with the same flags; GitHub CI doesn't run it.
 
 Executable names and package versions are recorded in [Toolchain](#toolchain). Current module
 and sanitizer validation is recorded in `cmake_template/docs/lab/toolchain.md`;
@@ -138,7 +200,7 @@ Dependencies of a requested target are still built as needed.
 ```bash
 cmake --workflow --preset dev                         # configure, build selected targets, run tests
 cmake --workflow --preset complete                         # same workflow with every app
-cmake --build --preset dev --target cmake_template_sandbox_native_module  # one excluded app explicitly
+cmake --build --preset dev --target sandbox_native_module  # one excluded app explicitly
 ```
 
 `any` means every preset; `complete` names the preset that builds every app. For example,
@@ -150,7 +212,7 @@ Presets set the shared cache variable `NOM_BUILD_PRESET`. A custom preset inheri
 selection unless it overrides that variable, so `dev-local` above still selects `dev` apps.
 Without a preset it defaults to `dev`; set `-DNOM_BUILD_PRESET=release` or `complete` when needed.
 This selects apps independently of `CMAKE_BUILD_TYPE`; `<PROJECT>_BUILD_APPS` still controls
-whether the apps directory participates. For every app with Clang, use
+whether app targets are created. For every app with Clang, use
 `cmake --preset clang -DNOM_BUILD_PRESET=complete`, then build that preset.
 
 ## compile_commands.json
@@ -158,15 +220,17 @@ whether the apps directory participates. For every app with Clang, use
 Every preset writes this compilation database (the exact compiler command for each file) into
 its build directory. Clang tools can't read GCC's module flags, so clangd and clang-tidy use the
 `clang` preset's database: `.clangd` points at `build/clang`, so configure and build that preset
-once. In VS Code, use the clangd extension with `"clangd.path": "/usr/bin/clangd-19"` and
+once. In VS Code, use the clangd extension with `"clangd.path": "/usr/bin/clangd-22"` and
 `"clangd.arguments": ["--experimental-modules-support"]`.
 
 ## The CMake kit
 
 `cmake/kit/` is shared by every repo and owned by the template (change it in `cmake_template`, then
 run `tools/kit/sync_template.py` in the other repos). The top-level `CMakeLists.txt` includes
-`cmake/kit/nom_kit.cmake`, which sets C++23 without compiler extensions. This remains the single
-entry point: `api/` contains the helpers used by repositories, `deps/` contains dependency
+`cmake/kit/std_modules.cmake` before `project()` to enable standard-library module detection,
+then `cmake/kit/nom_kit.cmake` after it to set C++23 without compiler extensions and load the
+kit. The pre-project entry point is also needed by outer source/package consumers.
+`api/` contains the helpers used by repositories, `deps/` contains dependency
 services, `internal/` contains implementation helpers, and `templates/` contains generic package
 metadata templates. See the [kit overview](../../cmake/kit/README.md) for short examples.
 
@@ -174,29 +238,50 @@ The entry point provides:
 
 | Function | What it does |
 |---|---|
+| `nom_enable_std_modules(<target>)` | Enable C++23 standard-library modules on an existing compiled target; validate toolchain support and restrict Clang's reserved-module-name warning exception to vendor sources. |
 | `nom_project_options()` | The project's options (below). Call it right after `project()`. |
-| `nom_lib(<name> [STATIC \| SHARED] [SOURCES …] [HEADERS …] [MODULES …] [BASE_DIR <dir>] [PUBLIC_DEPS …] [PRIVATE_DEPS …])` | Library `<name>` plus alias `nom::<name>`. `MODULES` lists native interfaces and partitions; `SOURCES` lists implementation units and other compiled sources. File sets are rooted at `BASE_DIR` (default `core/`). Header-only macro or dependency adapters can be INTERFACE targets. |
-| `nom_app(<name> SOURCES … [DEPS …] [BUILD_FOR …])` | Executable target `<project>_<name>`, binary `bin/<name>`; selects default build/install participation by preset; collects an adjacent `config/` directory. |
-| `nom_python_module(<target> MODULE_NAME <name> PACKAGE <package> SOURCES … [DEPS …] [RUNTIME_LIBRARIES …])` | Linux Python extension and explicitly bundled shared libraries, installed through the `nom_python` component. |
-| `nom_c2test(<suite> SOURCES … [DEPS …])` | Catch2 executable `<project>_<suite>`, registered with CTest. Needs `nom_find_catch2()`. |
+| `nom_lib(<name> [IMPORT_STD] [STATIC \| SHARED] [SOURCES …] [HEADERS …] [MODULES …] [BASE_DIR <dir>] [PUBLIC_DEPS …] [PRIVATE_DEPS …] [COMPILE_OPTIONS …])` | Library `<name>` plus alias `nom::<name>`. `MODULES` lists native interfaces and partitions; `SOURCES` lists implementation units and other compiled sources. File sets are rooted at `BASE_DIR` (default: `${PROJECT_SOURCE_DIR}/src`). Header-only macro or dependency adapters can be INTERFACE targets. Compile options are PRIVATE for compiled libraries and INTERFACE otherwise. |
+| `nom_app(<name> [IMPORT_STD] SOURCES … [DEPS …] [BUILD_FOR …] [COMPILE_OPTIONS …])` | Executable target `<name>` (unique across the whole build), binary `bin/<name>`; selects default build/install participation by preset; collects an adjacent `config/` directory. Compile options are PRIVATE. |
+| `nom_python_module(<target> [IMPORT_STD] MODULE_NAME <name> PACKAGE <package> SOURCES … [DEPS …] [RUNTIME_LIBRARIES …])` | Linux Python extension and explicitly bundled shared libraries, installed through the `nom_python` component. |
+| `nom_c2test(<suite> [IMPORT_STD] SOURCES … [DEPS …] [LABELS …] [PROPERTIES …])` | Catch2 executable `<project>_<suite>`, registered with CTest and labeled `unit`; `LABELS` replaces the label, `PROPERTIES` sets other test properties. Needs `nom_find_catch2()`. |
 | `nom_library_usage_tests(<dir> [OPTIONS …])` | Integration tests: build and run a separate project using this library as an installed package and from source (see Tests). |
-| `nom_install_package(TARGETS … [DEPENDENCIES …])` | Install rules and `<project>-config.cmake`, so consumers can `find_package(<project>)` and link `nom::<target>`. |
+| `nom_install_package(TARGETS … [DEPENDENCIES …])` | Install rules and `<project>-config.cmake`, so consumers can `find_package(<project>)` and link `nom::<target>`. The config finds `DEPENDENCIES` first, with the version and components a kit service found them with. |
 | `nom_require_submodule(<path>)` | Fails early, with the fix, when a submodule wasn't checked out. |
-| `nom_find_catch2()` | The system Catch2 3, otherwise a pinned download; called at the project root when tests are enabled, before code directories. |
-| `nom_find_metal()` | The retained Metal submodule as `nom::metal`, plus its separate `nom_metal` installed package. |
+| `nom_find_catch2()` | An installed Catch2 3.16.1 or newer within major version 3, otherwise that release downloaded and built in the build tree; called at the project root when tests are enabled, before code directories. |
+| `nom_find_boost()` | The system Boost 1.90 or newer with `Boost::program_options`, `Boost::filesystem` and `Boost::iostreams`; called at the project root, before code directories. |
+
+`nom_lib()` defaults `BASE_DIR` to `${PROJECT_SOURCE_DIR}/src`, independently of the
+declaration's directory or the repository's workspace location. Pass an explicit `BASE_DIR`
+for another layout. The base controls file-set include and install paths: a header at
+`src/prices/macros.h` is included and installed as `prices/macros.h`. Module sources follow
+the same rule; the `src/` directory does not become part of the public path.
 
 `nom_c2test` is specific to Catch2. Future test frameworks can have their own helpers
 without changing `nom_lib` or `nom_app`.
 
-The options, where `<PROJECT>` is the upper-case project name. Set them with `-D` on the command
-line; the CMake files read the variables:
+`nom_project_options()` constructs cache option names from the upper-case project name;
+for example, `project(prices)` produces `PRICES_BUILD_TESTS`. Set these options with `-D` on
+the command line. Their `nom_*` aliases belong to the calling directory and are inherited by
+its subdirectories. A dependency calling `nom_project_options()` establishes its own aliases,
+so the host's enabled tests or apps do not enable them in the dependency.
 
 | Option | Variable | Default | Controls |
 |---|---|---|---|
-| `<PROJECT>_BUILD_TESTS` | `nom_build_tests` | ON when top level | `tests/` |
-| `<PROJECT>_BUILD_APPS` | `nom_build_apps` | ON when top level | `apps/`, including the sandbox |
+| `<PROJECT>_BUILD_TESTS` | `nom_build_tests` | ON when top level, OFF as a dependency | test targets and registrations |
+| `<PROJECT>_BUILD_APPS` | `nom_build_apps` | ON when top level, OFF as a dependency | apps, including the sandbox and config collection |
 | `<PROJECT>_BUILD_PYTHON` | `nom_build_python` | OFF | optional Python bindings and wheel installation |
-| `<PROJECT>_INSTALL` | `nom_install` | ON | install rules and the package config |
+| `<PROJECT>_INSTALL` | `nom_install` | ON | native install rules and the package config |
+
+Public helpers return without creating targets or rules when their corresponding alias is OFF:
+`nom_app()` checks `nom_build_apps`, `nom_python_module()` checks `nom_build_python`,
+`nom_c2test()` and `nom_library_usage_tests()` check `nom_build_tests`, and
+`nom_install_package()` checks `nom_install`. App installation also requires `nom_install`;
+Python's `nom_python` component remains independent of it.
+
+Keep directory or caller guards for optional dependency discovery and for commands that modify
+targets or tests skipped by a helper, such as `set_tests_properties()`. Direct `add_test()` calls
+also need a `nom_build_tests` guard. A guard is unnecessary around a helper that handles the
+complete operation.
 
 In a superbuild each repo brings its own copy of the kit; the first one loaded wins, and a
 different version is reported as a warning.
@@ -205,12 +290,6 @@ Named modules are part of every Nomisma library build.
 
 ## Dependencies
 
-- **Metal:** the shared foundation includes a submodule pinned to v2.1.4. Call
-  `nom_find_metal()` before adding code directories and link `nom::metal` where its headers are
-  needed. The helper uses only Metal's include directory, leaving its upstream CMake project
-  unconfigured. With installation enabled, it installs a separate `nom_metal` package containing
-  the headers and license. Libraries whose exported targets reference Metal list `nom_metal` in
-  `nom_install_package(DEPENDENCIES …)`, including private dependencies of static libraries.
 - **Our repos:** a git submodule in `external/<name>`, wired with
   `FetchContent_Declare(<name> SOURCE_DIR ${PROJECT_SOURCE_DIR}/external/<name>)` and
   `FetchContent_MakeAvailable(<name>)`. FetchContent keeps the first declaration of a name, so in a
@@ -223,10 +302,19 @@ Named modules are part of every Nomisma library build.
     installed package brings nlohmann with it.
   - Header-only libraries whose CMake project doesn't suit a subproject are used through
     their include directory only; their CMake project is never run.
-- **System libraries** (Boost, OpenSSL, later): `find_package` only.
+- **Boost:** `nom_find_boost()`, from system packages: `Boost::program_options`,
+  `Boost::filesystem` and `Boost::iostreams`. Link the ones a target uses, and list `Boost` in
+  `nom_install_package(DEPENDENCIES …)` when exported targets link them; the package config then
+  finds the same components. To use another Boost library, add it to `nom_find_boost()` in
+  cmake_template, so every repo and package finds the same set.
+- **Other system libraries** (OpenSSL, later): `find_package` only.
 - **Catch2:** `nom_find_catch2()`.
 - **Co-developing two repos:** set `FETCHCONTENT_SOURCE_DIR_<NAME>` (upper-case name) to a local
   checkout, in `CMakeUserPresets.json` as above. No submodule bump is needed until you commit.
+- **Newer releases:** bootstrap runs `python3 tools/kit/checks/dependency_updates.py`, which asks
+  each submodule's remote for its release tags (`vX.Y.Z` or `X.Y.Z`) and records a `NOTE` naming
+  the submodules with a newer one. A remote it can't reach, for example without a network, or a
+  recorded commit that isn't a release, is reported unchecked; it never fails the run.
 - **Moving a pin:**
   ```bash
   git -C external/nlohmann_json fetch --depth 1 origin tag v3.12.1
@@ -250,9 +338,11 @@ This step copies config files; it does not generate or load runtime configuratio
 
 ## Modules
 
-Nomisma libraries define their C++ APIs in native named modules. The primary interface is
-`core/<repo>/<repo>.cppm`, declaring `export module nom.<repo>;`. Larger APIs can split into
-interface partitions and re-export them from the primary interface. Template definitions live
+Nomisma libraries define their C++ APIs in native named modules. A component's primary interface
+is `src/<component>/<component>.cppm`. The main library normally declares
+`export module nom.<repo>;`; its module name is independent of the source-directory name.
+Larger APIs can split into interface partitions and re-export them from the primary interface.
+Template definitions live
 in interfaces or partitions; compiled definitions live in `.cpp` implementation units declaring
 `module nom.<repo>;`. Apps and tests use `import nom.<repo>;`.
 
@@ -260,13 +350,62 @@ Use `MODULES` in `nom_lib()` to declare interfaces and partitions, including for
 consisting entirely of templates. The [module recipe](howto.md#a-module) shows the CMake and
 source layout.
 
+Standard-library modules use CMake 4.4.x, Ninja, GCC 16 or Clang 22, and installed standard-library
+module sources (the current Linux toolchain uses libstdc++ 16). Enable detection before the first
+`project()` that enables CXX, then opt in each compiled target that imports `std` or consumes a
+module that does:
+
+```cmake
+cmake_minimum_required(VERSION 4.4)
+include(cmake/kit/std_modules.cmake)
+project(prices LANGUAGES CXX)
+include(cmake/kit/nom_kit.cmake)
+nom_project_options()
+
+nom_lib(prices IMPORT_STD MODULES prices.cppm)
+nom_app(capture IMPORT_STD SOURCES main.cpp DEPS nom::prices)
+nom_c2test(prices_test IMPORT_STD SOURCES prices_test.cxx DEPS nom::prices)
+```
+
+`IMPORT_STD` is an explicit option on `nom_lib`, `nom_app`, `nom_c2test`, and
+`nom_python_module`. Each helper calls `nom_enable_std_modules()` internally after creating
+the target; disabled apps, tests and Python extensions skip this setup. Interface libraries
+reject the option because they compile no sources. The helper checks
+`CMAKE_CXX_COMPILER_IMPORT_STD` for C++23 and sets `CXX_MODULE_STD ON` only on that target.
+For targets created outside the kit, keep calling `nom_enable_std_modules(target)` directly,
+with a guard if the target may be absent. Find Catch2 before the test helper as usual.
+For Clang, only the vendor's `std`/`std.compat` sources receive
+`-Wno-reserved-module-identifier`; project warning settings remain intact.
+
+The experimental gate in `std_modules.cmake` is specific to CMake 4.4. Other CMake series need
+validation and an updated configuration; the helper rejects them instead of silently using a
+stale gate. The shared configure presets use schema version 12 and
+`"warnings": { "experimental": false }` to acknowledge experimental features while leaving
+other developer warnings enabled. For configuration without these presets, pass
+`-Wno-experimental` explicitly; target helpers do not change warning policy.
+When adopting this in an existing build, reconfigure from a fresh build directory
+so CXX toolchain detection runs with the gate enabled.
+
+Source consumers must include the entry point before their outer `project()`; loading it from
+a dependency is too late. Installed-package consumers without the kit must enable CMake 4.4's
+`CMAKE_EXPERIMENTAL_CXX_IMPORT_STD` gate (`f35a9ac6-8463-4d38-8eec-5d6008153e7d`) before `project()`,
+set C++23, check `CMAKE_CXX_COMPILER_IMPORT_STD`, and set `CXX_MODULE_STD ON` on their consuming
+targets. The library usage fixture demonstrates both paths using the kit helper.
+
+CMake discovers vendor module sources through the toolchain metadata and builds compatible
+compiled module interfaces before their importers. These are compiler/flag-specific build
+artifacts, not checked-in binaries or a replacement for linking the standard runtime library.
+`tests/kit/std_modules/` checks standard types across a module implementation boundary and a
+template instantiated by a Catch2 consumer; the existing source/package integration tests also
+exercise the migrated example library.
+
 Headers still have specific roles at the boundaries:
 
 - Macros cannot be exported. Keep them in ordinary headers and include them before imports;
   Catch2 tests follow the same rule for their assertion macros.
-- Include the standard-library headers each file uses (for example `<string>` to compare
-  `std::string`s). A module's global module fragment does not make those declarations visible
-  to importers. `import std;` needs separate toolchain validation.
+- Import `std` in each file that uses standard-library declarations. An ordinary `import std;`
+  in a library does not re-export those names to its consumers. Standard macros still require
+  their headers (for example `<cassert>` for `assert`); keep macro headers self-contained.
 - Third-party libraries without suitable module support can be included in a global module
   fragment, wrapped behind a module API, or used through headers by consumers that need them.
   Choose the boundary for the dependency and test it on the supported compilers. Keep our
@@ -286,23 +425,50 @@ cross-toolchain binary compatibility is not implied.
 ## Tests
 
 - `tests/unit/<suite>/` or inline `<code dir>/tests/<suite>/`: Catch2 unit tests, created with
-  `nom_c2test()` and labeled `unit`. The root enables testing and finds Catch2 before processing
-  `core/` and `apps/`, when `nom_build_tests` is enabled. Suites import the library's primary
+  `nom_c2test()` and labeled `unit`. Catch2 runs a suite's test cases in random order, so they
+  must not depend on each other; `--order decl` runs them in declaration order while you look for
+  such a dependency. The root enables testing and finds Catch2 before processing
+  `src/` and `apps/`, when `nom_build_tests` is enabled. Suites import the library's primary
   module; there is one path through the public API.
 - `tests/integration/`: checks involving project boundaries or installation, labeled `integration`.
-  `app_presets/` verifies app build/install selection; `library_usage/` is a separate CMake project
-  that compiles, links and runs against this library.
+  `library_usage/` is a separate CMake project that compiles, links and runs against this library.
   `nom_library_usage_tests()` installs the main project into
   `build/<preset>/tests/integration/library_usage/install`, then builds and runs the test project
   against that package with `find_package` (`<project>_library_usage_package`), and from source
   through `FetchContent` (`<project>_library_usage_source`). Both modes compile the same importing
-  consumer, including rebuilding installed module interfaces in package mode.
+  consumer, including rebuilding installed module interfaces in package mode. With `nom_install`
+  OFF, only the source-consumption test is registered. With `nom_build_tests` OFF, neither mode
+  is registered.
+- cmake_template's `tests/kit/`: tests of the kit and its tools themselves, labeled `kit`, such
+  as `app_presets/` for app build and install selection. Each builds throwaway projects or repos
+  of its own; new repos don't get them.
+
+Labels are CTest's tags: a test can carry several and belongs to each. Give every test exactly
+one of the levels `unit`, `integration` and `kit`, plus any tags that help select it, such as
+`python_package`. `nom_c2test()` and `nom_library_usage_tests()` label their tests; a direct
+`add_test()` needs `set_tests_properties(… LABELS …)`. A test without a label belongs to no level:
+it runs in every build, but `ctest -L` never selects it. Keep a fixture's setup test and the tests
+that require it on the same level, since a build that leaves out the setup test runs the others
+without it.
+
+The `dev` preset sets the cache variable `NOM_SKIP_TEST_LABELS` to `integration;kit`, the
+labels of the tests that build other projects and take seconds each. The kit lists the tests
+carrying them in the build tree's `CTestCustom.cmake`, so every ctest run in `build/dev` leaves
+them out, with or without a test preset. The other presets run every test; a personal preset can
+set its own list. The test presets run tests in parallel, one per CPU (they set
+`CTEST_PARALLEL_LEVEL` empty); in a build directory, `ctest -j` does the same. Fixtures
+(`FIXTURES_SETUP` and `FIXTURES_REQUIRED`) order tests that depend on each other, and
+`RUN_SERIAL` keeps a test that needs the whole machine alone.
 
 ```bash
-ctest --preset dev                   # all tests
-ctest --preset dev -L unit           # unit tests only
-ctest --preset dev -L integration    # integration tests, including required installation
+ctest --preset dev                        # the fast tests: unit, and any test without those labels
+ctest --preset complete                   # every test
+ctest --preset complete -L integration    # one label: unit, integration or kit
+ctest --preset complete -j1               # one test at a time
 ```
+
+A `dev` build has no integration or kit tests to select, so `ctest --preset dev -L integration`
+finds none.
 
 ## Install and use
 
@@ -345,12 +511,35 @@ To release `x.y.z`:
 | Check | Command |
 |---|---|
 | Python environment | `python3 tools/kit/checks/python.py` |
-| SPDX headers | `python3 tools/kit/checks/headers.py` |
-| Formatting | `tools/kit/checks/format.sh` (`--fix` to reformat) |
+| SPDX headers | `python3 tools/kit/checks/headers.py` (`--staged` for the staged files) |
+| Formatting | `tools/kit/checks/format.sh` (`--fix` to reformat, `--staged` for the staged files) |
 | Naming | `tools/kit/checks/naming.sh` (builds `clang` with `NOM_BUILD_PRESET=complete` to cover every app) |
 | Release tag | `python3 tools/kit/checks/version.py <tag>` |
+| Dependency updates | `python3 tools/kit/checks/dependency_updates.py` (a report; bootstrap only) |
 
 GitHub Actions (`.github/workflows/ci.yml`) runs the `ci` workflow preset and the first four
 checks on pushes to `master`, pull requests, manual runs, and `v*` tags. The version check runs
 only on `v*` tags. Build and quality checks run in the CI image `ghcr.io/<owner>/ci`, which
 cmake_template builds from `docker/ci/Dockerfile`.
+
+## Git hooks
+
+`./bootstrap.sh` enables the hooks in `tools/kit/hooks/` for the clone: it sets `core.hooksPath`
+to `tools/kit/hooks` in the clone's `.git/config`, unless the setting already names other hooks.
+Git then runs them on every commit:
+
+| Hook | Checks |
+|---|---|
+| `pre-commit` | the staged copy of each staged file: whitespace errors and conflict markers (`git diff --cached --check`; Markdown may keep trailing spaces), formatting (`format.sh --staged`) and SPDX headers (`headers.py --staged`) |
+| `commit-msg` | the message has no `Co-Authored-By` trailer |
+
+The hooks check what the commit gets, not the working tree: an unformatted change that isn't
+staged doesn't stop a commit, and a fix that isn't staged doesn't help. `git commit -a` stages
+the working copies of tracked files first, so those are checked, and a rejected commit leaves
+nothing staged. For formatting, the hook prints the changes needed and the command that makes
+them; run it, stage the fixes (`git add -p` for a file that also has unstaged changes), and
+commit again. Naming needs a build, so it stays in bootstrap and CI.
+
+Hooks run only in clones that enable them, and `git commit --no-verify` skips them, so CI stays
+the check every change passes. To opt a clone out, point the setting elsewhere, for example
+`git config core.hooksPath .git/hooks`; bootstrap leaves it alone from then on.

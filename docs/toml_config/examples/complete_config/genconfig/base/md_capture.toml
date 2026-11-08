@@ -1,0 +1,16 @@
+[log]
+level = "debug"
+
+[connection]
+address = "wss://dev.example/ws"
+timeout_s = 5
+
+[connection.snapshot]
+address = "wss://snapshot.dev.example/ws"
+
+[subscription]
+symbols = ["btcusdt"]
+channels = ["trade", "depth"]
+
+[md_log]
+file = "binance-spot-%Y%m%d-%H.md"

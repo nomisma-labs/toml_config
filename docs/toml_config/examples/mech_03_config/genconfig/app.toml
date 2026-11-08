@@ -1,0 +1,9 @@
+[log]
+level = "debug"
+
+[connection]
+timeout_s = 5
+
+[subscription]
+symbols = ["btcusdt", "ethusdt"]
+channels = ["trade", "depth"]

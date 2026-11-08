@@ -1,0 +1,12 @@
+[[sections]]
+[sections.tcfg]
+name = "dev"
+import = "config_workflow_example.toml"
+
+[[sections]]
+endpoint = "https://example.test/production-feed"
+timeout_s = 30
+
+[sections.tcfg]
+name = "prod"
+extend = "dev"

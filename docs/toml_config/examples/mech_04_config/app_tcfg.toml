@@ -1,0 +1,20 @@
+[[sections]]
+[sections.tcfg]
+name = "dev"
+
+[sections.log]
+level = "debug"
+
+[[sections]]
+[sections.tcfg]
+name = "ci"
+extend = "dev"
+
+[sections.log]
+level = "warn"
+
+[[sections]]
+[sections.tcfg]
+name = "prod"
+extend = "ci"
+gen_file = "capture.toml"

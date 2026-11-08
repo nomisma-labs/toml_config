@@ -1,0 +1,7 @@
+[log]
+level = "debug"
+file = "capture.log"
+
+[subscription]
+symbols = ["ethusdt"]
+channels = ["trade"]

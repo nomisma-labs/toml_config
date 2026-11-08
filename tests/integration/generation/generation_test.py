@@ -37,7 +37,7 @@ def main() -> None:
         fixture = args.source / "tests" / "integration" / "generation" / "fixture"
         shutil.copytree(fixture, source)
         build = root / "build"
-        helper = args.source / "cmake" / "tcfg.cmake"
+        helper = args.source / "cmake" / "toml_config" / "tcfg.cmake"
         run(
             args.cmake, "-Werror=dev", "-S", str(source), "-B", str(build), "-G", "Ninja",
             f"-DTCFG_HELPER={helper}",
@@ -92,7 +92,7 @@ def main() -> None:
         assert not (prefix / "config" / "excluded").exists()
         relocated = root / "relocated prefix"
         prefix.rename(relocated)
-        installed_helper = relocated / "share" / "toml_config" / "cmake" / "tcfg.cmake"
+        installed_helper = relocated / "share" / "toml_config" / "cmake" / "toml_config" / "tcfg.cmake"
         installed_build = root / "installed build"
         run(
             args.cmake, "-Werror=dev", "-S", str(source), "-B", str(installed_build), "-G", "Ninja",

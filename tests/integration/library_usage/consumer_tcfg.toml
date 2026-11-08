@@ -1,0 +1,30 @@
+[[sections]]
+enabled = true
+annotation = "inherited"
+
+[sections.tcfg]
+name = "base"
+gen_file = "consumer.toml"
+generate = false
+
+[sections.connection]
+address = "wss://example.test/generated"
+timeout_s = 10
+
+[[sections]]
+enabled = false
+
+[sections.tcfg]
+name = "prod"
+extend = "base"
+
+[sections.connection]
+timeout_s = 30
+
+[[sections]]
+[sections.tcfg]
+name = "invalid"
+extend = "prod"
+
+[sections.connection]
+timeout_s = 0

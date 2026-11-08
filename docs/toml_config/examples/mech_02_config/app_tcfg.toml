@@ -1,0 +1,4 @@
+[tcfg]
+name = "dev"
+gen_file = "app.toml"
+import = "app.toml"

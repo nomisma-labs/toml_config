@@ -1,0 +1,3 @@
+[connection]
+address = "wss://ci.example/ws"
+timeout_s = 10

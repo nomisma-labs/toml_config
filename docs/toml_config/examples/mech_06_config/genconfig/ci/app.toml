@@ -1,0 +1,14 @@
+[log]
+level = "warn"
+
+[log.file]
+name = "ci.log"
+rotationSize = 1500000
+
+[connection]
+address = "wss://dev.example/ws"
+timeout_s = 20
+
+[subscription]
+symbols = ["ethusdt"]
+channels = ["trade", "depth"]

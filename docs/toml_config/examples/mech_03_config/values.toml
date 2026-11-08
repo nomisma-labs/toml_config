@@ -1,0 +1,2 @@
+log_level = "debug"
+timeout_s = 5
