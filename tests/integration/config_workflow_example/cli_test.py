@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
-# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+# SPDX-License-Identifier: MIT
 """Generate the sample configs and exercise the real application's startup boundary."""
 
 import tomllib

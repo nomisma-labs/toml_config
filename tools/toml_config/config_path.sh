@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
-# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+# SPDX-License-Identifier: MIT
 
 # Source this file from ~/.bash_aliases to select config directories in this shell.
 # Definitions alone do not change NOM_CONFIG_DIR.

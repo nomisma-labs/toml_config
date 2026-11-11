@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
-# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+# SPDX-License-Identifier: MIT
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(toml_config_os_source util/os_linux.cpp)

@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
-# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+# SPDX-License-Identifier: MIT
 
 nom_app(config_workflow_example IMPORT_STD SOURCES main.cpp DEPS nom::toml_config
     COMPILE_OPTIONS -DNOM_CONFIG_KEY=config_workflow_example)

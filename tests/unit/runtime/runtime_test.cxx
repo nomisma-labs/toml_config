@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Alexey Tkachenko
-// SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+// SPDX-License-Identifier: MIT
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>

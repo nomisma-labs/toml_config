@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
-# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+# SPDX-License-Identifier: MIT
 """The educational examples and focused language contracts for tcfg resolution."""
 
 import tomllib

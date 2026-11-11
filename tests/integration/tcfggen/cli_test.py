@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
-# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+# SPDX-License-Identifier: MIT
 """Exercise the generator's public command line from an unrelated directory."""
 
 import json

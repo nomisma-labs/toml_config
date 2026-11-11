@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
-# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+# SPDX-License-Identifier: MIT
 
 foreach(test_case IN ITEMS integer_member integer_container unregistered_type)
     execute_process(COMMAND ${CMAKE_COMMAND} --build "${build_dir}" --target reject_${test_case}

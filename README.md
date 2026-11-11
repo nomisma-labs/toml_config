@@ -70,3 +70,9 @@ the alternative JSON configuration framework. A project chooses one framework;
 coexistence and compatibility between their tools or APIs are not requirements.
 
 Instructions for automated contributors are in [AGENTS.md](AGENTS.md).
+
+## License
+
+This project is licensed under [MIT](LICENSE). Copyright belongs to Alexey Tkachenko.
+The synchronized build kit retains its [MIT notice](cmake/kit/LICENSE); third-party
+dependencies retain their own licenses.

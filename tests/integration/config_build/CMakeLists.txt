@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2026 Alexey Tkachenko
-# SPDX-License-Identifier: LicenseRef-Nomisma-Labs-Proprietary
+# SPDX-License-Identifier: MIT
 
 find_package(Python 3.11 REQUIRED COMPONENTS Interpreter)
 add_test(NAME ${PROJECT_NAME}_config_build
