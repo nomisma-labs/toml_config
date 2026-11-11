@@ -6,6 +6,13 @@ and versions follow [Semantic Versioning](https://semver.org); how to release:
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-12
+
+### Changed
+
+- Pin `base v0.6.0` from its new repository history. Public APIs and runtime behavior
+  are unchanged; recursive checkouts use the current base release.
+
 ## [0.2.0] - 2026-11-11
 
 ### Changed
