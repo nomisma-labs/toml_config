@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 4.4)
 include(cmake/kit/std_modules.cmake)
 
 project(toml_config
-    VERSION 0.2.1
+    VERSION 0.2.2
     DESCRIPTION "Nomisma application configuration"
     LANGUAGES CXX)
 
